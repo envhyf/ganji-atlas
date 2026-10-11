@@ -29,8 +29,7 @@ export function renderAlmanac(root, m, on) {
     </p>
     <div class="almanac__nav" role="group" aria-label="切换日期">
       <button type="button" class="chipbtn" data-day="${m.i - 1}" ${m.i <= 0 ? 'disabled' : ''}>前一日</button>
-      <button type="button" class="chipbtn" data-day="${m.today}" ${m.i === m.today ? 'aria-current="date"' : ''}>今日</button>
-      <button type="button" class="chipbtn" data-day="${m.i + 1}" ${m.i >= m.days.length - 1 ? 'disabled' : ''}>后一日</button>
+      ${[0, 1, 2].map(offset => `<button type="button" class="chipbtn" data-day="${m.today + offset}" ${m.i === m.today + offset ? 'aria-current="date"' : ''} ${m.today + offset >= m.days.length ? 'disabled' : ''}>${['今天', '明天', '后天'][offset]}</button>`).join('')}
     </div>
     <aside class="lexicon" aria-label="此地叫法">
       <span class="lexicon__char" aria-hidden="true">${esc(L.c)}</span>
