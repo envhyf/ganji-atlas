@@ -3,7 +3,7 @@
 import { isMarket, indexOf, todayISO, weekday } from './calendar.js';
 import { km, wgs2gcj, bounds } from './geo.js';
 import { createMap } from './map.js?v=20261010-place-labels-3';
-import { renderAlmanac, renderLedger } from './panel.js?v=20261011-day-shortcuts';
+import { renderAlmanac, renderLedger } from './panel.js?v=20261011-calendar-arrows';
 import { renderWeave, SPAN } from './weave.js?v=20261011-short-names';
 import { lexicon } from './lexicon.js';
 import { compactPlaceName } from './place-name.js';

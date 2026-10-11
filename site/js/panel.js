@@ -58,9 +58,9 @@ export function renderLedger(root, m, on) {
   };
   root.innerHTML = `<div class="near-cal">
     <div class="near-cal__heading"><div><p class="eyebrow">${esc(m.hereName)}</p><h2>附近七日集历</h2></div><span>${m.radius} 公里内</span></div>
-    <div class="near-cal__week"><button type="button" data-day="${Math.max(0,start-7)}" aria-label="上一周" ${start===0?'disabled':''}>‹</button>
+    <div class="near-cal__week"><button type="button" data-day="${Math.max(0,start-7)}" aria-label="上一周" ${start===0?'disabled':''}><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2 4 6 8 10"/></svg></button>
       <span>${md(m.days[start].d)} — ${md(m.days[end].d)}</span>
-      <button type="button" data-day="${Math.min(m.days.length-1,start+7)}" aria-label="下一周" ${end===m.days.length-1?'disabled':''}>›</button></div>
+      <button type="button" data-day="${Math.min(m.days.length-1,start+7)}" aria-label="下一周" ${end===m.days.length-1?'disabled':''}><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg></button></div>
     <div class="near-cal__dates" role="group" aria-label="附近集市七日历">${Array.from({length:end-start+1},(_,j)=>{
       const k=start+j,day=m.days[k],count=listFor(k).length;
       return `<button type="button" data-day="${k}" ${k===m.i?'aria-pressed="true"':'aria-pressed="false"'} aria-label="${md(day.d)}，${count}个乡镇有集">
