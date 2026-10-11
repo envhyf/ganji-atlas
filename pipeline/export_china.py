@@ -21,7 +21,7 @@ import admin  # noqa: E402
 import geo  # noqa: E402
 from export_province import simplify, days_table, BEFORE, AFTER  # noqa: E402
 from provinces import SLUG_PROVINCE  # noqa: E402
-from boundaries import county_mesh  # noqa: E402
+from boundaries import county_mesh, province_outline  # noqa: E402
 from records import atomic_json  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -133,7 +133,8 @@ def main():
                            "g": simplify_hard(k["geometry"], 0.0005)})
         atomic_json(OUT / 'p' / f'{code}.json',
             {"a": code, "n": f["properties"]["name"], "cities": cs, "counties": ks,
-             "mesh": county_mesh(county_features)})
+             "mesh": county_mesh(county_features),
+             "outline": province_outline(county_features)})
 
         mk = []
         for it in items:

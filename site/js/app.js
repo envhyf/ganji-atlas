@@ -2,7 +2,7 @@
 // demand per province; seats and their rules live in the national bundle.
 import { isMarket, indexOf, todayISO, weekday } from './calendar.js';
 import { km, wgs2gcj, bounds } from './geo.js';
-import { createMap } from './map.js?v=20261011-selected-label-v3';
+import { createMap } from './map.js?v=20261012-province-edges';
 import { renderAlmanac, renderLedger } from './panel.js?v=20261011-calendar-arrows';
 import { renderWeave, SPAN } from './weave.js?v=20261011-short-names';
 import { lexicon } from './lexicon.js';

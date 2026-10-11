@@ -27,3 +27,9 @@ def county_mesh(features, tolerance=0.0005):
     borders = [set_precision(polygonal(f['geometry']), 0.000001).boundary for f in features]
     mesh = unary_union(borders).simplify(tolerance, preserve_topology=True)
     return mapping(mesh)
+
+
+def province_outline(features, tolerance=0.0005):
+    """Province perimeter from the same detailed county geometry as the mesh."""
+    area = unary_union([set_precision(polygonal(f["geometry"]), 0.000001) for f in features])
+    return simplify_polygon(mapping(area), tolerance)

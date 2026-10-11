@@ -19,6 +19,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
   const ctx = canvas.getContext('2d');
   const land = el('g', { class: 'm-land' }, svg);
   const detail = el('g', { class: 'm-detail' }, svg);
+  const provinceEdges = el('g', { class: 'm-province-edges' }, svg);
   const detailLayers = new Map();
   let provinceLabels = [];
   const frame = el('g', { class: 'm-frame-g' }, svg);
@@ -70,6 +71,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
     if (!bundle) return;
     const key = bundle.a || bundle.n;
     detailLayers.get(key)?.node.remove();
+    detailLayers.get(key)?.edge?.remove();
     const node = el('g', { 'data-province': key }, detail);
     const box = [Infinity, Infinity, -Infinity, -Infinity];
     for (const c of bundle.counties) {
@@ -85,7 +87,10 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
       // Older bundles: use county borders only, without duplicate city outlines.
       for (const c of bundle.counties) el('path', { class: 'm-cty', d: pathOf(c.g, proj) }, node);
     }
-    detailLayers.set(key, { node, box, cities: (bundle.cities || []).map(c => ({ name: c.n, point: centroid(c.g) })).filter(c => c.point), counties: bundle.counties.map(c => ({ name: c.n, point: centroid(c.g) })).filter(c => c.point) });
+    const edge = bundle.outline
+      ? el('path', { class: 'm-province-edge', d: pathOf(bundle.outline, proj) }, provinceEdges)
+      : null;
+    detailLayers.set(key, { node, edge, box, cities: (bundle.cities || []).map(c => ({ name: c.n, point: centroid(c.g) })).filter(c => c.point), counties: bundle.counties.map(c => ({ name: c.n, point: centroid(c.g) })).filter(c => c.point) });
     syncDetailMode();
   }
 

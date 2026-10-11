@@ -30,6 +30,17 @@ class BoundaryTests(unittest.TestCase):
         self.assertAlmostEqual(mesh.length, 7)
         self.assertTrue(mesh.is_simple)
 
+    def test_province_outline_excludes_shared_county_edge(self):
+        from boundaries import province_outline
+        features = [
+            {'geometry': Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]).__geo_interface__},
+            {'geometry': Polygon([(1, 0), (2, 0), (2, 1), (1, 1)]).__geo_interface__},
+        ]
+        outline = shape(province_outline(features, tolerance=0))
+        self.assertAlmostEqual(outline.boundary.length, 6)
+        self.assertAlmostEqual(outline.area, 2)
+        self.assertTrue(outline.is_valid)
+
     def test_small_coastal_island_survives_simplification(self):
         small = Polygon([(108, 22), (108.0004, 22), (108.0004, 22.0004), (108, 22.0004)])
         result = shape(simplify(small.__geo_interface__, .008))

@@ -80,7 +80,7 @@ button:disabled { opacity: .4; cursor: default; }
 .m-shadow { opacity: 0; }
 .m-prov { fill: #eef4ed; stroke: #a7c0ad; stroke-width: .55; }
 .m-has { fill: #e6f0e5; stroke: #a7c0ad; stroke-width: .55; }
-.m-prov-line { stroke: #87a991; stroke-width: .8; }
+.m-prov-line { stroke: #789b83; stroke-width: 1.15; }
 .m-prov-lbl { fill: #577261; letter-spacing: .04em; }
 .m-frame-g { display: none; }
 .m-city, .m-city-line { stroke: #9db8a6; stroke-width: .65; }
@@ -88,7 +88,9 @@ button:disabled { opacity: .4; cursor: default; }
 .m-county-mesh { fill: none; stroke: #9fbca7; stroke-width: .75; stroke-linejoin: round; }
 #map ellipse { vector-effect: non-scaling-stroke; }
 .atlas__stage.is-detailed .m-land path { stroke: none; }
-.atlas__stage:not(.is-detailed) .m-detail { display: none; }
+.m-province-edge { fill: none; stroke: #789b83; stroke-width: 1.35; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.atlas__stage:not(.is-detailed) .m-detail,
+.atlas__stage:not(.is-detailed) .m-province-edges { display: none; }
 .m-inset { display: none; }
 .atlas__stage.is-national .m-inset { display: block; }
 .m-ring { fill: #78a7820b; stroke: #8bb393; stroke-width: 1; stroke-dasharray: 5 6; }
