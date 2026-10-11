@@ -20,6 +20,17 @@ for (const view of [[100, 200, 4, 3.2], [-400, -300, 1800, 1440]]) {
   const limited = limitView(view, 1000, 800);
   assert.ok(Math.abs(limited[0] + limited[2] / 2 - (view[0] + view[2] / 2)) < 1e-9);
   assert.ok(Math.abs(limited[1] + limited[3] / 2 - (view[1] + view[3] / 2)) < 1e-9);
-  assert.ok(limited[2] >= 1000 / 60 && limited[2] <= 1000);
+  assert.ok(limited[2] >= 1000 / 480 && limited[2] <= 1000);
 }
 console.log('Map view regression checks passed: zoom, pan, hit testing and responsive sizes.');
+
+// Local views must zoom beyond the former 60x ceiling, on phone and desktop.
+const closeView = limitView([492, 393.6, 8, 6.4], 1000, 800);
+assert.equal(closeView[2], 8);
+assert.equal(closeView[0] + closeView[2] / 2, 496);
+const maxView = limitView([499.5, 399.6, 1, .8], 1000, 800);
+assert.equal(maxView[2], 1000 / 480);
+for (const size of [[390, 312], [800, 640]]) {
+  const point = worldToScreen([500, 400], maxView, ...size);
+  assert.ok(Math.hypot(point[0] - size[0] / 2, point[1] - size[1] / 2) < 1e-8);
+}

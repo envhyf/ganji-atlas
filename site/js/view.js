@@ -1,4 +1,5 @@
 // Shared camera transform for Canvas markers and pointer hit testing.
+export const MAX_ZOOM = 480;
 export function worldToScreen([x, y], [vx, vy, vw, vh], width, height) {
   return [(x - vx) * width / vw, (y - vy) * height / vh];
 }
@@ -7,7 +8,7 @@ export function screenToWorld([x, y], [vx, vy, vw, vh], width, height) {
   return [vx + x * vw / width, vy + y * vh / height];
 }
 
-export function limitView([x, y, w, h], width, height, maxZoom = 60) {
+export function limitView([x, y, w, h], width, height, maxZoom = MAX_ZOOM) {
   const cx = x + w / 2, cy = y + h / 2;
   const nextWidth = Math.max(width / maxZoom, Math.min(width, w));
   h *= nextWidth / w;

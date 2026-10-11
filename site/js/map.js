@@ -1,7 +1,7 @@
 // The atlas: SVG for boundaries, frame and 南海诸岛 inset; canvas for the dots.
 // A canvas keeps 25k seats smooth, and hit-testing is then ours to do.
 import { bounds, fitProjection, pathOf, linePathOf, km, centroid } from './geo.js';
-import { worldToScreen, screenToWorld, limitView } from './view.js';
+import { worldToScreen, screenToWorld, limitView, MAX_ZOOM } from './view.js?v=20261012-local-zoom';
 
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1000, PAD = 34;
@@ -148,7 +148,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
   }
   function zoomAt(px, py, k) {
     const z = zoomOf(vb);
-    k = Math.max(1 / z, Math.min(60 / z, k));
+    k = Math.max(1 / z, Math.min(MAX_ZOOM / z, k));
     if (Math.abs(k - 1) < 1e-9) return;
     apply(clampView([px - (px - vb[0]) / k, py - (py - vb[1]) / k, vb[2] / k, vb[3] / k]));
   }
