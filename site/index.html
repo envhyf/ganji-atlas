@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>赶集志 · 附近哪里有集</title>
+  <meta name="theme-color" content="#f8faf7">
+  <meta name="description" content="全国各地赶集、赶场、赶圩、趁墟的日子与地方。你在哪里，周边哪天有集，一眼可见。">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/map.css">
+  <link rel="stylesheet" href="css/weave.css">
+  <link rel="stylesheet" href="css/light.css?v=20261010-radius-labels">
+  <script type="module" src="js/app.js?v=20261011-short-names"></script>
+</head>
+<body>
+  <a class="skip" href="#ledger">跳到当日集市</a>
+
+  <header class="mast">
+    <div class="shell mast__row">
+      <a class="mast__brand" href="./" aria-label="赶集志 首页">
+        <span class="mast__seal" aria-hidden="true" id="seal">集</span>
+        <span class="mast__name">赶集志</span>
+      </a>
+      <span class="mast__tagline">把日子过到街巷里</span>
+      <nav class="mast__crumbs" aria-label="所在地" id="crumbs"></nav>
+      <button class="mast__locate" type="button" id="locate" aria-pressed="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 0v3M8 13v3M0 8h3M13 8h3"/></svg>
+        <span>找我附近</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="welcome shell" aria-labelledby="welcome-title">
+      <div>
+        <h1 id="welcome-title">今天，去赶个集<span>。</span></h1>
+        <p class="welcome__lede">找一处热闹，赴一场寻常。看看哪里有集，哪天出发。</p>
+      </div>
+      <div class="welcome__aside">
+        <svg class="welcome__stall" viewBox="0 0 112 90" fill="none" aria-hidden="true">
+          <path d="M17 34L25 15H87L95 34" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M17 34V40C17 48 30 48 30 40V34M30 34V40C30 48 43 48 43 40V34M43 34V40C43 48 56 48 56 40V34M56 34V40C56 48 69 48 69 40V34M69 34V40C69 48 82 48 82 40V34M82 34V40C82 48 95 48 95 40V34" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M25 48V78H87V48M20 78H92M36 61H76" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M44 15L40 34M68 15L72 34" stroke="currentColor" stroke-width="2"/>
+          <circle cx="87" cy="10" r="8" fill="#f1c477"/>
+        </svg>
+        <p id="browse-note">先从广西宾阳逛起</p>
+        <span>一张地图，记住下一次相逢</span>
+      </div>
+    </section>
+    <section class="stage shell" aria-labelledby="stage-title">
+      <h2 id="stage-title" class="sr-only">附近集市地图</h2>
+
+      <aside class="almanac" aria-live="polite" id="almanac"></aside>
+
+      <figure class="atlas">
+        <form class="finder" id="finder" role="search" autocomplete="off">
+          <label class="sr-only" for="q">地名或经纬度</label>
+          <input id="q" name="q" type="search" enterkeyhint="search"
+                 placeholder="想去哪里？搜县名或经纬度" list="places">
+          <datalist id="places"></datalist>
+          <button type="submit">找集 <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="atlas__tools">
+          <div class="radius" role="radiogroup" aria-label="周边范围" id="radius"></div>
+          <button type="button" class="chipbtn" id="zoom-all">全国</button>
+        </div>
+        <p class="atlas__hint" id="hint">点一个小圆点，看看这里哪天有集</p>
+        <div class="atlas__stage" id="stage">
+          <canvas id="dots" aria-hidden="true"></canvas>
+          <svg id="map" role="img" aria-labelledby="map-desc"></svg>
+          <div class="zoomctl" role="group" aria-label="缩放">
+            <button type="button" id="zoom-in" aria-label="放大">+</button>
+            <button type="button" id="zoom-out" aria-label="缩小">−</button>
+          </div>
+        </div>
+        <figcaption id="map-desc" class="atlas__cap"></figcaption>
+        <p class="atlas__word" id="local-word"></p>
+      </figure>
+
+      <aside class="ledger" id="ledger" aria-label="周边集市"></aside>
+    </section>
+
+    <section class="loom shell" aria-labelledby="loom-title" id="loom-sec" hidden>
+      <header class="loom__head">
+        <div>
+          <p class="eyebrow" id="loom-eyebrow">集期经纬</p>
+          <h2 id="loom-title">周边五周</h2>
+        </div>
+        <p class="loom__lede" id="loom-lede"></p>
+        <div class="loom__ctrl">
+          <button type="button" id="prev" aria-label="前一周">‹</button>
+          <button type="button" id="play" aria-pressed="false">
+            <span class="play__icon" aria-hidden="true"></span><span class="play__txt">播放</span>
+          </button>
+          <button type="button" id="today">今日</button>
+          <button type="button" id="next" aria-label="后一周">›</button>
+          <button type="button" id="loom-close" aria-label="收起集期表">收起</button>
+        </div>
+      </header>
+      <div class="loom__scroll" id="loom" tabindex="0" aria-label="集期表，可横向滚动"></div>
+    </section>
+
+    <section class="colophon shell">
+      <div>
+        <p class="eyebrow" id="col-period">集期</p>
+        <p>
+          规则抄录自<a href="https://www.xuribiao.com/" rel="noopener">圩日表</a>众包维护的条目，
+          以干支、农历、公历逐日推演。出发前，记得向当地人再确认一下。
+        </p>
+      </div>
+      <div>
+        <p class="eyebrow">方位</p>
+        <p id="colophon-geo">每处集市定到所在乡镇，坐标取乡镇人民政府驻地（高德），并以阿里云 DataV 县界校验。</p>
+      </div>
+      <div>
+        <p class="eyebrow">勘误</p>
+        <p>集期会因政策、节令、人事而变。若你所见与此不同，那多半是你对。</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

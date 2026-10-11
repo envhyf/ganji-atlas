@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const source = await readFile(new URL('../site/js/place-name.js', import.meta.url), 'utf8');
+const { compactPlaceName } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+assert.equal(compactPlaceName(['五通桥城里的泗望关农贸市场','五通桥城里的竹根农贸市场'], '竹根镇'), '五通桥城');
+assert.equal(compactPlaceName(['沙湾区城里的郭沫若农贸市场','沙湾城里的大市场'], '沙湾镇'), '沙湾城');
+assert.equal(compactPlaceName(['东联镇'], '东联镇'), '东联镇');
+assert.equal(compactPlaceName(['金粟镇','桥沟镇'], '金粟镇'), '金粟镇·桥沟镇');
+assert.equal(compactPlaceName(['某个特别长的乡镇人民政府旁边的农贸市场'], '靖和镇'), '靖和镇');
+assert.equal(compactPlaceName([], '竹根镇'), '竹根镇');
+assert.equal(compactPlaceName([], ''), '集市');
+console.log('Place labels preserve locality and keep full market names separate.');

@@ -1,0 +1,21 @@
+# Local credentials and environments
+.amap_key
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+
+# Downloaded source pages, location caches, job state and logs
+/data/
+/backups/
+/previews/
+*.log
+*.pid
+*.tmp
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/

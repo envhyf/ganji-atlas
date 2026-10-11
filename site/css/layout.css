@@ -1,0 +1,244 @@
+/* ---------- masthead ---------- */
+.mast {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+}
+.mast__row {
+  position: relative;
+  display: flex; align-items: center; gap: 1.5rem;
+  min-height: 60px; border-bottom: 1px solid var(--rule);
+}
+.mast__row::after {            /* the cinnabar stroke under the rule */
+  content: ""; position: absolute; left: 0; bottom: -1px;
+  width: 64px; height: 2px; background: var(--cinnabar);
+}
+.mast__brand { display: flex; align-items: center; gap: .65rem; text-decoration: none; }
+.mast__seal {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  background: var(--cinnabar); color: var(--paper);
+  font-family: var(--serif); font-size: 17px; font-weight: 700; line-height: 1;
+  border-radius: 3px; transform: rotate(-3deg);
+  box-shadow: inset 0 0 0 1.5px rgba(243, 239, 228, .35);
+}
+.mast__name { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: .28em; }
+.mast__crumbs { display: flex; gap: .45rem; color: var(--ink-3); font-size: 13px; letter-spacing: .08em; }
+.mast__crumbs strong { color: var(--ink); font-weight: 500; }
+.mast__locate {
+  margin-left: auto; display: inline-flex; align-items: center; gap: .5rem;
+  padding: .4rem .85rem; border: 1px solid var(--ink-2); border-radius: 999px;
+  background: transparent; cursor: pointer; font-size: 13px; letter-spacing: .06em;
+  transition: background .2s, color .2s;
+}
+.mast__locate svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.mast__locate:hover, .mast__locate[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+/* ---------- stage: almanac | atlas | ledger ---------- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(150px, 180px) minmax(0, 1fr) minmax(270px, 320px);
+  gap: clamp(1.25rem, 2vw, 2.5rem);
+  padding-block: clamp(1.75rem, 3vw, 3rem) clamp(2.5rem, 4vw, 4rem);
+  align-items: start;
+}
+
+/* almanac: a vertical calendar slip */
+.almanac { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 1.25rem; }
+.almanac__solar { display: flex; align-items: baseline; gap: .5rem; color: var(--ink-2); }
+.almanac__solar b { font-family: var(--serif); font-size: 15px; font-weight: 500; letter-spacing: .12em; }
+.almanac__slip {
+  display: flex; gap: .9rem; align-items: flex-start;
+  padding: 1.1rem 0 1.25rem; border-block: 1px solid var(--ink);
+}
+.almanac__lunar {
+  writing-mode: vertical-rl; text-orientation: upright;
+  font-family: var(--serif); font-size: clamp(42px, 4.2vw, 58px); font-weight: 600;
+  line-height: 1.04; letter-spacing: .08em; color: var(--ink);
+}
+.almanac__side { writing-mode: vertical-rl; display: flex; gap: .5rem; font-family: var(--serif); white-space: nowrap; }
+.almanac__gz { font-size: 14px; letter-spacing: .25em; color: var(--ink-2); }
+.almanac__jq {
+  font-size: 13px; letter-spacing: .3em; padding: .45em .2em;
+  border: 1px solid var(--cinnabar); color: var(--cinnabar);
+}
+.almanac__count { font-family: var(--serif); font-size: 15px; color: var(--ink-2); letter-spacing: .06em; }
+.almanac__count strong {
+  display: block; font-size: 56px; line-height: 1; font-weight: 500;
+  color: var(--cinnabar); letter-spacing: 0; margin-bottom: .2rem;
+}
+.almanac__count small { display: block; margin-top: .35rem; font-family: var(--sans); font-size: 12px; color: var(--ink-3); }
+.almanac__nav { display: flex; gap: .4rem; }
+.almanac__nav .chipbtn { white-space: nowrap; padding-inline: .3rem; }
+.chipbtn {
+  flex: 1; padding: .35rem .5rem; border: 1px solid var(--rule); border-radius: 2px;
+  background: transparent; cursor: pointer; font-size: 13px; letter-spacing: .1em;
+}
+.chipbtn:hover { border-color: var(--ink); }
+.chipbtn[aria-current="date"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* lexicon: the local word for "market", in a seal */
+.lexicon { display: grid; grid-template-columns: auto 1fr; gap: .75rem; align-items: start; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.lexicon__char {
+  display: grid; place-items: center; width: 44px; height: 44px;
+  border: 1.5px solid var(--cinnabar); color: var(--cinnabar);
+  font-family: var(--serif); font-size: 28px; font-weight: 700; line-height: 1;
+  transform: rotate(-2deg);
+}
+.lexicon p { font-size: 12px; line-height: 1.6; color: var(--ink-3); }
+.lexicon b { display: block; font-family: var(--serif); font-size: 15px; color: var(--ink); letter-spacing: .2em; margin-bottom: .15rem; }
+
+/* ledger: list of markets */
+.ledger { display: flex; flex-direction: column; gap: 1.5rem; }
+.eyebrow {
+  font-size: 12px; letter-spacing: .32em; color: var(--ink-3);
+  display: flex; align-items: center; gap: .6rem;
+}
+.eyebrow::before { content: ""; width: 14px; height: 1px; background: currentColor; }
+.ledger__h { display: flex; justify-content: space-between; align-items: baseline; margin-top: .4rem; }
+.ledger__h h2 { font-size: 22px; }
+.ledger__h span { font-size: 12px; color: var(--ink-3); }
+.ledger__list { list-style: none; margin: .5rem 0 0; padding: 0; }
+.ledger__item button {
+  width: 100%; display: grid; grid-template-columns: 1.1rem 1fr auto; gap: .2rem .7rem;
+  align-items: baseline; padding: .7rem 0; text-align: left;
+  background: none; border: 0; border-bottom: 1px solid var(--rule); cursor: pointer;
+}
+.ledger__item button:hover .ledger__name, .ledger__item.is-sel .ledger__name { color: var(--cinnabar); }
+.ledger__idx { font-size: 11px; color: var(--ink-3); }
+.ledger__name { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: .08em; transition: color .15s; }
+.ledger__dist { font-size: 13px; color: var(--ink-2); }
+.ledger__rule { grid-column: 2 / 4; font-size: 12px; color: var(--ink-3); letter-spacing: .04em; }
+.ledger__empty { padding: 1rem 0; color: var(--ink-3); font-size: 14px; border-bottom: 1px solid var(--rule); }
+.ledger__more { font-size: 13px; color: var(--ink-3); }
+.ledger__tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+.tag {
+  padding: .15rem .55rem; border: 1px solid var(--rule); border-radius: 2px;
+  font-family: var(--serif); font-size: 13px; background: none; cursor: pointer;
+}
+.tag:hover { border-color: var(--ink); }
+.tag--dim { color: var(--ink-3); border-style: dashed; cursor: default; }
+
+/* town card */
+.card { padding: 1.1rem 1.15rem 1.2rem; background: var(--paper-2); border-left: 2px solid var(--cinnabar); }
+.card__h { display: flex; justify-content: space-between; align-items: baseline; }
+.card__h h3 { font-size: 21px; letter-spacing: .1em; }
+.card__x { border: 0; background: none; cursor: pointer; color: var(--ink-3); font-size: 18px; line-height: 1; }
+.card__rule { margin-top: .35rem; font-size: 13px; color: var(--ink-2); }
+.card__next { display: flex; gap: .35rem; margin-top: .85rem; flex-wrap: wrap; }
+.card__next span {
+  display: flex; flex-direction: column; align-items: center; min-width: 3.1rem;
+  padding: .3rem .35rem; border: 1px solid var(--rule); font-size: 11px; color: var(--ink-3);
+}
+.card__next span b { font-family: var(--serif); font-size: 15px; color: var(--ink); font-weight: 600; }
+.card__next span.is-today { border-color: var(--cinnabar); }
+.card__next span.is-today b { color: var(--cinnabar); }
+.card__meta { margin-top: .85rem; font-size: 12px; color: var(--ink-3); }
+
+.ledger__loom {
+  display: flex; justify-content: space-between; align-items: baseline; width: 100%;
+  margin-top: 1rem; padding: .85rem 1rem; border: 1px solid var(--ink); background: none; cursor: pointer;
+  font-family: var(--serif); font-size: 16px; letter-spacing: .15em; color: var(--ink);
+  transition: background .2s, color .2s;
+}
+.ledger__loom small { font-family: var(--sans); font-size: 12px; letter-spacing: 0; color: var(--ink-3); }
+.ledger__loom:hover { background: var(--ink); color: var(--paper); }
+.ledger__loom:hover small { color: var(--paper-3); }
+.ledger__intro { margin-top: .5rem; font-size: 14px; color: var(--ink-2); }
+.ledger__bars { list-style: none; margin: .7rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.ledger__bars li { display: grid; grid-template-columns: 4.2em 1fr 4.2em; align-items: center; gap: .6rem; font-size: 13px; }
+.ledger__bars li span { font-family: var(--serif); letter-spacing: .06em; }
+.ledger__bars li i { height: 6px; background: linear-gradient(90deg, var(--cinnabar) var(--w), var(--paper-3) var(--w)); }
+.ledger__bars li b { font-weight: 500; text-align: right; }
+.ledger__bars li small { color: var(--ink-3); font-weight: 400; }
+.ledger__soon { display: grid; grid-template-columns: 3.6rem 1fr; gap: .6rem; padding: .55rem 0; border-bottom: 1px solid var(--rule); }
+.ledger__day {
+  border: 0; background: none; cursor: pointer; padding: 0; text-align: left;
+  font-family: var(--serif); font-size: 15px; font-weight: 600; line-height: 1.25;
+}
+.ledger__day small { display: block; font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--ink-3); }
+.ledger__day:hover { color: var(--cinnabar); }
+.ledger__soon .ledger__tags { margin-top: 0; }
+.ledger__note { font-size: 13px; color: var(--ink-3); margin-top: .4rem; }
+.tag small { margin-left: .3rem; font-family: var(--sans); font-size: 10px; color: var(--ink-3); }
+.card__path { font-size: 12px; color: var(--ink-3); margin-top: .1rem; letter-spacing: .04em; }
+.card__mkt { margin-top: .95rem; padding-top: .8rem; border-top: 1px solid var(--rule); }
+.card__name { display: flex; justify-content: space-between; gap: .6rem; align-items: baseline;
+  font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: .08em; }
+.card__name span { font-family: var(--sans); font-size: 12px; font-weight: 400; color: var(--cinnabar); letter-spacing: .04em; }
+.card__next em { font-style: normal; font-size: 13px; color: var(--ink-3); }
+.card { max-height: 70vh; overflow: auto; }
+
+/* colophon */
+.colophon {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.5rem, 3vw, 3rem);
+  padding-block: 2.5rem 4rem; border-top: 1px solid var(--ink);
+  font-size: 13px; color: var(--ink-2);
+}
+.colophon .eyebrow { margin-bottom: .5rem; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1080px) {
+  .stage { grid-template-columns: minmax(150px, 180px) minmax(0, 1fr); }
+  .ledger { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem 3rem; }
+}
+@media (max-width: 720px) {
+  body { font-size: 14px; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .mast__row { min-height: 52px; }
+  .mast__crumbs { display: flex; font-size: 12px; margin-left: auto; }
+  .mast__crumbs span:not(:last-child), .mast__crumbs span[aria-hidden] { display: none; }
+  .mast__locate { margin-left: .5rem; padding: .45rem; }
+  .mast__locate span { display: none; }
+  .mast__name { font-size: 17px; letter-spacing: .2em; }
+
+  .stage { display: flex; flex-direction: column; gap: 0; padding-block: .9rem 2rem; }
+
+  /* almanac → a single strip: 九月初一 | 丁巳日 · 属蛇 | 511 处今日开圩 */
+  .almanac { display: contents; }
+  .almanac__solar { order: 1; font-size: 12px; margin-bottom: .35rem; }
+  .almanac__slip {
+    order: 2; display: flex; align-items: center; gap: .9rem; padding: .7rem 0;
+    border-block: 1px solid var(--ink);
+  }
+  .almanac__lunar { writing-mode: horizontal-tb; font-size: 30px; letter-spacing: .12em; line-height: 1; }
+  .almanac__side { writing-mode: horizontal-tb; flex-direction: column; gap: .2rem; }
+  .almanac__gz { font-size: 13px; letter-spacing: .1em; }
+  .almanac__jq { font-size: 11px; letter-spacing: .2em; padding: .05em .4em; align-self: flex-start; }
+  .almanac__count {
+    order: 2; margin: -3.1rem 0 0 auto; padding-bottom: .55rem; text-align: right;
+    font-size: 12px; line-height: 1.3; position: relative; pointer-events: none;
+  }
+  .almanac__count strong { font-size: 34px; margin-bottom: 0; }
+  .almanac__count small { display: none; }
+
+  .stage .atlas { order: 3; margin: .8rem calc(-1 * var(--gutter)) 0; width: auto; }
+  .atlas__tools, .finder, .atlas__hint { margin-inline: var(--gutter); }
+  .finder { margin-bottom: .6rem; }
+  #map { background: none; width: 100%; }
+  .atlas__cap { padding-inline: var(--gutter); font-size: 11px; }
+  .atlas__cap > span:first-child { display: none; }
+
+  .lexicon { order: 4; margin-top: 1rem; }
+
+  /* date nav → bottom dock, thumb reach */
+  .almanac__nav {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
+    padding: .55rem var(--gutter) calc(.55rem + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--rule); gap: .5rem;
+  }
+  .almanac__nav .chipbtn { height: 44px; font-size: 14px; border-radius: 3px; }
+
+  .ledger { order: 5; display: flex; margin-top: 1.75rem; }
+  .ledger__item button { padding: .85rem 0; }
+  .tag { padding: .35rem .65rem; font-size: 14px; }
+  .card { max-height: none; }
+
+  .loom__head { gap: .75rem; margin-bottom: 1rem; }
+  .loom__ctrl button { height: 2.6rem; min-width: 2.75rem; }
+  .weave tbody th { font-size: 13px; padding-right: .6rem; }
+  .weave tbody th small { display: none; }
+  .wv-day { min-width: 26px; }
+  .colophon { grid-template-columns: 1fr; gap: 1.5rem; padding-bottom: 2rem; }
+}

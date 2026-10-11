@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const source = await readFile(new URL('../site/js/region.js', import.meta.url), 'utf8');
+const { regionTrail, inRegion } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const china = {provinces:[{n:'广东省'},{n:'广西'}],cities:[[440100,'广州市',0],[440600,'佛山市',0]],counties:[[440113,'番禺区',440100,0],[440114,'花都区',440100,0],[440606,'顺德区',440600,0],[450100,'番禺区',450100,1]]};
+const seats=[{p:0,c:0},{p:0,c:1},{p:0,c:2},{p:1,c:3}];
+const trail=regionTrail(seats[0],china);
+assert.deepEqual(trail.map(r=>r.name),['广东省','广州市','番禺区']);
+assert.equal(seats.filter(s=>inRegion(s,trail[0],china.counties)).length,3);
+assert.equal(seats.filter(s=>inRegion(s,trail[1],china.counties)).length,2);
+assert.equal(seats.filter(s=>inRegion(s,trail[2],china.counties)).length,1);
+assert.equal(inRegion({p:0,c:null},trail[2],china.counties),false);
+console.log('Province, city and county scope checks passed.');
