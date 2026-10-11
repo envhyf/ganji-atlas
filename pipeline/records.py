@@ -28,6 +28,11 @@ def atomic_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + f'.{os.getpid()}.tmp')
     tmp.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    replace_with_retry(tmp, path)
+
+
+def replace_with_retry(tmp, path):
+    tmp, path = Path(tmp), Path(path)
     # Windows sync/indexing tools can briefly hold the destination open.
     # Keep the old checkpoint intact and retry replacing the same temp file.
     for attempt in range(12):

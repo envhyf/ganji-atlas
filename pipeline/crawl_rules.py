@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from fetch import get  # noqa: E402
 import parse  # noqa: E402
 import rules  # noqa: E402
-from records import read_records, atomic_json, job_lock  # noqa: E402
+from records import read_records, atomic_json, job_lock, replace_with_retry  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "markets.jsonl"
@@ -54,7 +54,7 @@ def main():
             keep.append(json.dumps(r, ensure_ascii=False))
         tmp = OUT.with_suffix('.jsonl.tmp')
         tmp.write_text("".join(l + "\n" for l in keep), encoding="utf-8")
-        tmp.replace(OUT)
+        replace_with_retry(tmp, OUT)
     t0, n_new = time.time(), 0
     progress = {'state': 'running', 'completed': [], 'saved': len(done)}
     def checkpoint(slug, total, remaining):

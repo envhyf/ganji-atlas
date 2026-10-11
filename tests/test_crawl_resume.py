@@ -9,6 +9,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'pipeline'))
 
 
 class CrawlResumeTests(unittest.TestCase):
+    def test_locked_record_replacement_preserves_original_and_pending_data(self):
+        from records import replace_with_retry
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d) / 'markets.jsonl'
+            pending = Path(d) / 'markets.jsonl.tmp'
+            target.write_text('{"id":1}\n', encoding='utf-8')
+            pending.write_text('{"id":1}\n{"id":2}\n', encoding='utf-8')
+            with patch.object(Path, 'replace', side_effect=PermissionError('file lock')) as replace, patch('records.time.sleep'):
+                with self.assertRaises(PermissionError):
+                    replace_with_retry(pending, target)
+            self.assertEqual(replace.call_count, 12)
+            self.assertEqual(target.read_text(encoding='utf-8'), '{"id":1}\n')
+            self.assertEqual(pending.read_text(encoding='utf-8'), '{"id":1}\n{"id":2}\n')
+
     def test_atomic_save_retries_temporary_windows_file_lock(self):
         from records import atomic_json
         original = Path.replace
