@@ -1,11 +1,11 @@
 // Almanac (left) and ledger (right). Pure render from a view model; events via callbacks.
 // A "seat" is one township seat; it may hold several markets sharing a rhythm or not.
-import { isMarket, ruleLabel, weekdayCn, weekday, nextDays, md } from './calendar.js';
+import { isMarket, ruleLabel, weekdayCn, weekday, nextDays, md } from './calendar.js?v=20261012-refine';
 
-import { compactPlaceName } from './place-name.js';
+import { compactPlaceName } from './place-name.js?v=20261012-refine';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const kmTxt = d => d < 1 ? '<1 公里' : `${d < 10 ? d.toFixed(1) : Math.round(d)} 公里`;
+const kmTxt = d => d < 1 ? '直线 <1 公里' : `直线 ${d < 10 ? d.toFixed(1) : Math.round(d)} 公里`;
 const rel = (i, today) => ({ [-1]: '昨日', 0: '今日', 1: '明日', 2: '后日' })[i - today] ?? null;
 const nameOf = x => compactPlaceName(x.names, x.s.t);
 const rulesOf = x => [...new Set((x.rules || []).map(r => ruleLabel(r)))];
@@ -24,12 +24,12 @@ export function renderAlmanac(root, m, on) {
     </div>
     <p class="almanac__count">
       <strong class="num">${m.here ? m.nearOpen : m.provOpen}</strong>
-      ${m.here ? `个乡镇${r ? r : '当日'}有集<small>${m.region ? esc(m.region.name) + '内' : m.radius + ' 公里内'} · 已收录地区共 ${m.provOpen} 个乡镇</small>`
+      ${m.here ? `个乡镇${r ? r : '当日'}有集<small>${m.region ? esc(m.region.name) + '内' : m.radius + ' 公里内'} · 已收录 ${m.near.length} 个乡镇</small>`
                : `个乡镇${r ? r : '当日'}有集<small>已收录 ${m.total} 处集市</small>`}
     </p>
     <div class="almanac__nav" role="group" aria-label="切换日期">
       <button type="button" class="chipbtn" data-day="${m.i - 1}" ${m.i <= 0 ? 'disabled' : ''}>前一日</button>
-      ${[0, 1, 2].map(offset => `<button type="button" class="chipbtn" data-day="${m.today + offset}" ${m.i === m.today + offset ? 'aria-current="date"' : ''} ${m.today + offset >= m.days.length ? 'disabled' : ''}>${['今天', '明天', '后天'][offset]}</button>`).join('')}
+      ${[0, 1, 2].map(offset => `<button type="button" class="chipbtn" data-day="${m.today + offset}" ${m.i === m.today + offset ? 'aria-current="date"' : ''} ${m.today < 0 || m.today + offset >= m.days.length ? 'disabled' : ''}>${['今天', '明天', '后天'][offset]}</button>`).join('')}
     </div>
     <aside class="lexicon" aria-label="此地叫法">
       <span class="lexicon__char" aria-hidden="true">${esc(L.c)}</span>
@@ -54,10 +54,10 @@ export function renderLedger(root, m, on) {
     const names = active.map(mk => mk[1]);
     return `<li><button type="button" data-seat="${x.s.i}"><span>${esc(nameOf({ ...x, names }))}
       <small>${esc(rulesOf({rules:x.rules.filter(rule => isMarket(rule,m.days[m.i]))}).join('、'))}</small></span>
-      <em>${kmTxt(x.d)}</em><span class="near-cal__arrow" aria-hidden="true">↗</span></button></li>`;
+      <em>${m.region?'':kmTxt(x.d)}</em><span class="near-cal__arrow" aria-hidden="true">↗</span></button></li>`;
   };
   root.innerHTML = `<div class="near-cal">
-    <div class="near-cal__heading"><div><p class="eyebrow">${esc(m.hereName)}</p><h2>附近七日集历</h2></div><span>${m.radius} 公里内</span></div>
+    <div class="near-cal__heading"><div><p class="eyebrow">${esc(m.hereName)}</p><h2>${m.region?'七日集历':'附近七日集历'}</h2></div><span>${m.region?'已收录地点':m.radius+' 公里内'}</span></div>
     <div class="near-cal__week"><button type="button" data-day="${Math.max(0,start-7)}" aria-label="上一周" ${start===0?'disabled':''}><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2 4 6 8 10"/></svg></button>
       <span>${md(m.days[start].d)} — ${md(m.days[end].d)}</span>
       <button type="button" data-day="${Math.min(m.days.length-1,start+7)}" aria-label="下一周" ${end===m.days.length-1?'disabled':''}><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg></button></div>
@@ -69,7 +69,7 @@ export function renderLedger(root, m, on) {
     <div class="near-cal__day-title"><b>${rel(m.i,m.today) || md(m.days[m.i].d)}有集</b><span>${list.length} 个乡镇</span></div>
     <ul class="near-cal__markets">${list.length?list.slice(0,4).map(item).join(''):
       `<li class="near-cal__empty">${m.near.length?'这天附近暂无已收录的集市，试试另一天。':'这里的集市位置还在补充，可以换个地方看看。'}</li>`}</ul>
-    ${list.length>4?`<details class="near-cal__more"><summary>还有 ${list.length-4} 个乡镇</summary><ul class="near-cal__markets">${list.slice(4).map(item).join('')}</ul></details>`:''}
+    ${list.length>4?`<details class="near-cal__more"><summary>查看更多（${list.length-4} 个乡镇）</summary><ul class="near-cal__markets">${list.slice(4,20).map(item).join('')}</ul>${list.length>20?'<p class=near-cal__empty>当前列出前 20 个地点，缩小到市县可查看当地集市。</p>':''}</details>`:''}
     <button type="button" class="near-cal__full" data-loom>查看五周集历 <span aria-hidden="true">→</span></button>
   </div>${m.seat?card(m):''}`;
   wire(root,on);
@@ -82,13 +82,13 @@ function card(m) {
     : s.rules.map((ri, i) => ({ id: null, n: s.township || '圩场', r: m.rules[ri], q: null, rs: null }));
   return `<article class="card" aria-label="${esc(s.township || '')}">
     <div class="card__h"><h3>${esc(s.displayName || s.township || '此处')}</h3><button type="button" class="card__x" data-close aria-label="关闭">×</button></div>
-    <p class="card__path">${esc([s.city, s.county].filter(Boolean).join(' · '))}</p>
+    <p class="card__path">${esc([s.city, s.county].filter(Boolean).join(' · '))}</p><p class="card__location">乡镇参考位置，非集市入口；出发前请向当地确认。</p>
     ${ms.map(mk => {
       const nx = nextDays(mk.r, m.days, m.i, 3);
       return `<section class="card__mkt">
         <p class="card__name">${esc(mk.n)}<span>${esc(ruleLabel(mk.r))}</span></p>
         <div class="card__next">${nx.length ? nx.map(k => `<span class="${k === m.i ? 'is-today' : ''}">${rel(k, m.today) ?? '星期' + weekdayCn(m.days[k].d)}<b class="num">${md(m.days[k].d)}</b>${esc(m.days[k].lt.slice(-2))}</span>`).join('')
-          : `<em>近一年无${L.period}</em>`}</div>
+          : `<em>${mk.r.type==='unknown'?'场期待核验，暂不能推算日期':'当前集历范围内无匹配日期'}</em>`}</div>
         <details class="card__source"><summary>来源与位置说明</summary><p class="card__meta">原文：${esc(mk.rs || '—')}${mk.q === 'low' ? ' · 归属乡镇为推断，待复核' : ''}
           ${mk.id ? `· <a href="https://www.xuribiao.com/ganji/zhen/${mk.id}.html" rel="noopener">圩日表条目</a>` : ''}</p></details>
       </section>`;

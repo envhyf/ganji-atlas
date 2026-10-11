@@ -1,7 +1,7 @@
 // The atlas: SVG for boundaries, frame and 南海诸岛 inset; canvas for the dots.
 // A canvas keeps 25k seats smooth, and hit-testing is then ours to do.
-import { bounds, fitProjection, pathOf, linePathOf, km, centroid } from './geo.js';
-import { worldToScreen, screenToWorld, limitView, MAX_ZOOM } from './view.js?v=20261012-local-zoom';
+import { bounds, fitProjection, pathOf, linePathOf, km, centroid } from './geo.js?v=20261012-refine';
+import { worldToScreen, screenToWorld, limitView, MAX_ZOOM } from './view.js?v=20261012-refine';
 
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1000, PAD = 34;
@@ -14,7 +14,7 @@ function el(tag, attrs = {}, parent) {
   return n;
 }
 
-export function createMap(stage, svg, canvas, { onPick, onSeat }) {
+export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
   let proj = null, H = W * 0.8, vb = null, seats = [], openFlags = null;
   const ctx = canvas.getContext('2d');
   const land = el('g', { class: 'm-land' }, svg);
@@ -125,6 +125,13 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
     drawFrame(v);
     placeHere();
     paint();
+    const a=proj.invert([v[0],v[1]+v[3]]),b=proj.invert([v[0]+v[2],v[1]]);
+    onView?.([a[0],a[1],b[0],b[1]],proj.zoom);
+    const plus=stage.querySelector('#zoom-in'),minus=stage.querySelector('#zoom-out');
+    if(plus)plus.disabled=proj.zoom>=MAX_ZOOM-.01;
+    if(minus)minus.disabled=proj.zoom<=1.001;
+    const scale=stage.querySelector('.map-scale');
+    if(scale){const distance=80*v[2]/(stage.clientWidth||W)*proj.kmPerPx;scale.textContent=distance<1?`${Math.round(distance*1000)} 米`:`${distance.toFixed(distance<10?1:0)} 公里`;}
   }
 
   function animateTo(target, ms = 520) {
@@ -174,7 +181,8 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
       const s = seats[i];
       const [x, y] = worldToScreen([s.px, s.py], vb, cw, ch);
       if (x < -20 || x > cw + 20 || y < -20 || y > ch + 20) continue;
-      const on = openFlags ? openFlags[i] : false;
+      const on = openFlags?.[i] === 1;
+      const unknown = openFlags?.[i] === 2;
       const emphasized = !!herePt && s.within && on;
       ctx.globalAlpha = 1;
       ctx.lineWidth = emphasized ? 1.8 : 1.2;
@@ -189,9 +197,10 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
         ctx.strokeStyle = '#ffffff'; ctx.stroke();
         if (showLabel) labels.push({ s, x, y, emphasized });
       } else {
-        ctx.strokeStyle = INK3;
+        ctx.strokeStyle = unknown ? '#9b8067' : INK3;
+        ctx.setLineDash(unknown ? [2,2] : []);
         ctx.globalAlpha = z > 3 ? .85 : .5;
-        ctx.arc(x, y, rShut, 0, 6.2832); ctx.stroke();
+        ctx.arc(x, y, rShut, 0, 6.2832); ctx.stroke(); ctx.setLineDash([]);
         ctx.globalAlpha = 1;
         if (showLabel && s.sel) labels.push({ s, x, y, emphasized: false });
       }
@@ -342,7 +351,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
     onPick(proj.invert([px, py]));
   });
 
-  new ResizeObserver(() => paint()).observe(stage);
+  new ResizeObserver(() => apply(vb)).observe(stage);
 
   return {
     setNation, setDetail, setSeats,

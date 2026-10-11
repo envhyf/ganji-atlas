@@ -1,17 +1,31 @@
 // State and wiring for the national atlas. Boundaries and market names load on
 // demand per province; seats and their rules live in the national bundle.
-import { isMarket, indexOf, todayISO, weekday } from './calendar.js';
-import { km, wgs2gcj, bounds } from './geo.js';
-import { createMap } from './map.js?v=20261012-local-zoom';
-import { renderAlmanac, renderLedger } from './panel.js?v=20261011-calendar-arrows';
-import { renderWeave, SPAN } from './weave.js?v=20261011-short-names';
-import { lexicon } from './lexicon.js';
-import { compactPlaceName } from './place-name.js';
-import { regionTrail, inRegion } from './region.js';
+import { isMarket, indexOf, todayISO, weekday } from './calendar.js?v=20261012-refine';
+import { km, wgs2gcj, bounds, contains } from './geo.js?v=20261012-refine';
+import { createMap } from './map.js?v=20261012-refine';
+import { renderAlmanac, renderLedger } from './panel.js?v=20261012-refine';
+import { renderWeave, SPAN } from './weave.js?v=20261012-refine';
+import { lexicon } from './lexicon.js?v=20261012-refine';
+import { compactPlaceName } from './place-name.js?v=20261012-refine';
+import { regionTrail, inRegion } from './region.js?v=20261012-refine';
+import { findPlaces, seatKey, parseHash } from './query.js?v=20261012-refine';
 
 const RADII = [10, 20, 30, 50];
 const $ = id => document.getElementById(id);
-const china = await (await fetch('data/china.json', { cache: 'no-cache' })).json();
+const DATA_ROOT = 'data/';
+async function dataFile(path) {
+  const response = await fetch(DATA_ROOT + path, { cache: 'no-cache' });
+  if (!response.ok) throw new Error('资料暂时无法加载');
+  return response.json();
+}
+let china;
+try { china = await dataFile('china.json'); }
+catch (error) {
+  $('load-status').textContent = '集市资料加载失败，请检查网络后重试。';
+  $('recovery').hidden = false;
+  throw error;
+}
+$('load-status').hidden = true;
 
 const counties = china.counties, cities = china.cities, provs = china.provinces, rules = china.rules;
 const seats = china.seats.map(([x, y, p, c, t, rs], i) => ({
@@ -23,40 +37,43 @@ const provBox = provs.map(p => bounds(p.g));
 
 // ---- lazy per-province detail ----
 const packed = new Map();     // adcode -> {geo, markets}
-const loading = new Set();
-const marketOf = new Map();   // seat index -> [market]
-
-async function loadProvince(k) {
-  if (!provs[k]?.has) return;
+const loading = new Map();
+const marketOf = new Map();
+function loadProvince(k) {
+  if (!provs[k]?.has) return Promise.resolve();
   const code = provs[k].a;
-  if (packed.has(code) || loading.has(code)) return;
-  loading.add(code);
-  try {
-    const [geoP, mP] = await Promise.all([
-      fetch(`data/p/${code}.json`, { cache: 'no-cache' }).then(r => r.json()),
-      fetch(`data/m/${code}.json`, { cache: 'no-cache' }).then(r => r.json()),
-    ]);
-    packed.set(code, { geo: geoP, markets: mP.markets });
-    for (const m of mP.markets) {
-      const si = m[2];
-      if (!marketOf.has(si)) marketOf.set(si, []);
-      marketOf.get(si).push(m);
-    }
-    for (const m of mP.markets) {
-      const s = seats[m[2]];
-      if (s) s.label = compactPlaceName(marketOf.get(s.i).map(x => x[1]), s.t);
-    }
-    if (S.detail !== k) { S.detail = k; map.setDetail(geoP); }
-    if (S.region?.p === k) fitRegion(S.region);
-    render();
-  } finally { loading.delete(code); }
+  if (packed.has(code) || loadingErrors.has(code)) return Promise.resolve();
+  if (loading.has(code)) return loading.get(code);
+  const pending = (async () => {
+    try {
+      const [geoP, mP] = await Promise.all([dataFile(`p/${code}.json`), dataFile(`m/${code}.json`)]);
+      for (const m of mP.markets) {
+        if (!marketOf.has(m[2])) marketOf.set(m[2], []);
+        marketOf.get(m[2]).push(m);
+      }
+      packed.set(code, {geo:geoP, markets:mP.markets});
+      map.setDetail(geoP);
+      if (S.region?.p === k) fitRegion(S.region);
+      loadingErrors.delete(code);
+      syncLoadStatus(); render();
+    } catch (error) {
+      loadingErrors.add(code); syncLoadStatus();
+    } finally { loading.delete(code); }
+  })();
+  loading.set(code,pending);
+  return pending;
 }
-
-async function loadAllProvinces() {
-  for (const k of provs.keys()) {
-    if (!provs[k].has) continue;
-    await loadProvince(k).catch(() => {});
-  }
+const loadingErrors = new Set();
+function syncLoadStatus() {
+  $('load-status').hidden = !loadingErrors.size;
+  if (loadingErrors.size) $('load-status').textContent = '部分地区资料未能加载，地图名称或详情可能不完整。';
+  $('recovery').hidden = !loadingErrors.size;
+}
+var viewTimer;
+function loadVisible(box, zoom) {
+  clearTimeout(viewTimer);
+  if (zoom < 3.4) return;
+  viewTimer = setTimeout(() => { for (const k of provincesIn(box)) loadProvince(k); }, 600);
 }
 
 /** province indices whose bbox touches a box */
@@ -76,11 +93,13 @@ function bboxOf(pts) {
 }
 
 // ---- state ----
-const today = indexOf(china.days, todayISO());
-const S = { i: today, win: 0, here: null, via: null, seat: null, near: [], radius: 20, loom: false, playing: 0, detail: null, region: null, query: null };
+const todayIndex = () => { const i=china.days.findIndex(d=>d.d===todayISO()); return i<0?-10000:i; };
+let today = todayIndex();
+const S = { i: indexOf(china.days,todayISO()), win: 0, here: null, via: null, seat: null, near: [], radius: 20, loom: false, playing: 0, detail: null, region: null, query: null };
 const openFlags = new Uint8Array(seats.length);
 
 const map = createMap($('stage'), $('map'), $('dots'), {
+  onView: loadVisible,
   onPick: ll => setHere(ll, 'map'),
   onSeat: s => selectSeat(seats[s.i]),
 });
@@ -89,6 +108,7 @@ map.setSeats(china.seats);
 
 function setHere(ll, via) {
   S.region = null; S.seat = null; S.here = ll; S.via = via;
+  $('hint').textContent = via==='gps'?'已按你的位置显示':'点一个小圆点，看看这附近哪天有集。';
   if (via !== 'pick' && via !== 'featured') {
     const place = nameNear(ll);
     const text = place.distance <= 50 ? `${place.label}${place.city ? `（${place.city}）` : ''}`
@@ -98,7 +118,7 @@ function setHere(ll, via) {
   map.setHere(ll, S.radius);
   $('locate').setAttribute('aria-pressed', via === 'gps');
   $('browse-note').textContent = via === 'featured' ? '先从广西宾阳逛起' : via === 'gps' ? '从你所在的地方出发' : '换个地方，逛逛当地的集';
-  history.replaceState(null, '', `#${ll[0].toFixed(4)},${ll[1].toFixed(4)},${S.radius}`);
+  updateHash();
   loadProvince(provOf(ll));
   for (const k of provincesIn([ll[0] - .8, ll[1] - .8, ll[0] + .8, ll[1] + .8])) loadProvince(k);
   render();
@@ -114,7 +134,8 @@ function selectSeat(seat) {
     const info = seatInfoOf(seat);
     syncFinder(`${info.county}${info.township}${info.city ? `（${info.city}）` : ''}`, [seat.lon, seat.lat]);
   }
-  stop(); render();
+  stop(); render(); updateHash();
+  if (seat && matchMedia('(max-width:720px)').matches) { $('stage').scrollIntoView({block:'start',behavior:'instant'}); $('ledger').querySelector('[data-close]')?.focus({preventScroll:true}); }
 }
 async function selectRegion(region) {
   stop();
@@ -125,7 +146,7 @@ async function selectRegion(region) {
   $('locate').setAttribute('aria-pressed', 'false');
   $('browse-note').textContent = `逛逛${region.name}的集`;
   $('hint').textContent = `正在查看${region.name}的已收录集市`;
-  history.replaceState(null, '', `#region,${region.level},${region.id},${S.here[0].toFixed(4)},${S.here[1].toFixed(4)},${S.radius}`);
+  updateHash();
   render();
   await loadProvince(region.p);
   if (S.region !== region) return;
@@ -153,10 +174,15 @@ function clearHere() {
   render();
 }
 function provOf(ll) {
-  const k = provincesIn([ll[0], ll[1], ll[0], ll[1]]);
-  if (!k.length) return 0;
-  // prefer one that actually contains it, else the nearest centre
-  return k.sort((a, b) => km(ll, centreOf(a)) - km(ll, centreOf(b)))[0];
+  return provincesIn([ll[0],ll[1],ll[0],ll[1]]).find(k => contains(packed.get(provs[k].a)?.geo.outline || provs[k].g,ll)) ?? -1;
+}
+function locationTrail(ll) {
+  if (!ll) return [];
+  const p = provOf(ll);
+  if (p < 0) return [];
+  const county = packed.get(provs[p].a)?.geo.counties.find(c => contains(c.g,ll));
+  if (county) return regionTrail({p,c:counties.findIndex(c=>c[0]===county.a)},china);
+  return [{level:'province',id:p,name:provs[p].n,p}];
 }
 function centreOf(k) {
   const b = provBox[k];
@@ -175,11 +201,18 @@ function seatInfoOf(s) {
 }
 
 function nameNear(ll) {
+  const trail = locationTrail(ll), p = trail[0]?.p;
   let best = null, bd = Infinity;
-  for (const s of seats) { const d = km(ll, [s.lon, s.lat]); if (d < bd) { bd = d; best = s; } }
-  if (!best) return { label: '此处', city: '' };
-  const c = best.c != null ? counties[best.c] : null;
-  return { label: `${c ? c[1] : ''}${best.t || ''}${bd > 3 ? '一带' : ''}`, city: c ? (cityName.get(c[2]) ?? '') : '', distance: bd };
+  for (const s of seats) {
+    if (s.p !== p) continue;
+    const d = km(ll,[s.lon,s.lat]);
+    if (d < bd) { bd=d; best=s; }
+  }
+  const county = trail.find(r=>r.level==='county');
+  const city = trail.find(r=>r.level==='city')?.name || '';
+  if (best && bd<=3 && (!county || counties[best.c]?.[0]===county.id))
+    return {label:`${county?.name || ''}${best.t}一带`,city,distance:bd};
+  return {label:county?.name || trail[0]?.name || '此处',city,distance:trail.length?0:Infinity};
 }
 
 function render() {
@@ -187,7 +220,7 @@ function render() {
   let openCount = 0;
   for (let i = 0; i < seats.length; i++) {
     const on = seats[i].rules && seats[i].rules.length > 0 && seats[i].rules.some(r => isMarket(rules[r], day));
-    openFlags[i] = on ? 1 : 0;
+    openFlags[i] = on ? 1 : seats[i].rules.some(r=>rules[r]?.type==='unknown') ? 2 : 0;
     if (on) openCount++;
   }
   map.setOpen(openFlags);
@@ -202,7 +235,7 @@ function render() {
     const out = [];
     for (const s of seats) {
       const d = km(S.here, [s.lon, s.lat]);
-      if (d > S.radius) continue;
+      if (S.region ? !inRegion(s,S.region,counties) : d > S.radius) continue;
       const ms = marketOf.get(s.i) || [];
       const localRules = [...new Set(s.rules || [])].map(r => rules[r]).filter(Boolean);
       out.push({ s, d, rules: localRules, markets: ms, names: ms.map(x => x[1]),
@@ -213,16 +246,16 @@ function render() {
   })() : [];
   const seatInfo = S.seat ? seatInfoOf(S.seat) : null;
   const nearName = S.here ? nameNear(S.here) : null;
-  const L = lexicon(seatInfo ? provs[seatInfo.p].n : S.here ? provs[S.region?.p ?? provOf(S.here)].n : '', seatInfo ? seatInfo.city : (nearName?.city ?? ''));
+  const L = lexicon(seatInfo ? provs[seatInfo.p].n : S.here ? (provs[S.region?.p ?? provOf(S.here)]?.n || '') : '', seatInfo ? seatInfo.city : (nearName?.city ?? ''));
   $('seal').textContent = L.c;
   $('local-word').textContent = `这里叫「${L.go}」`;
   $('local-word').title = L.note;
 
   const m = {
     L, days: china.days, i: S.i, today, win: S.win, radius: S.radius,
-    here: S.here, region: null, seat: seatInfo, near, nearOpen: near.filter(x => x.open).length,
+    here: S.here, region: S.region, seat: seatInfo, near, nearOpen: near.filter(x => x.open).length,
     provOpen: openCount, total: china.counts.markets, unplaced: nearbyUnplaced(),
-    hereName: nearName?.label ?? '', rules,
+    hereName: S.region?.name || nearName?.label || '', rules,
     byProv: byProv(openFlags), withData: provs.filter(p => p.has).map(p => ({ a: p.a, n: p.n })),
     weaveNear: near.slice(0, 30),
   };
@@ -240,8 +273,7 @@ function render() {
   $('colophon-geo').textContent =
     `目前收录 ${china.counts.markets} 处集市、${china.counts.seats} 个乡镇。地图标的是乡镇参考位置，并非集市入口。`;
 
-  const nearest = S.here ? seats.reduce((best, s) => !best || km(S.here, [s.lon, s.lat]) < km(S.here, [best.lon, best.lat]) ? s : best, null) : null;
-  let trail = regionTrail(S.seat || nearest, china);
+  let trail = S.seat ? regionTrail(S.seat,china) : locationTrail(S.here);
   if (S.region && !S.seat) {
     const representative = seats.find(s => inRegion(s, S.region, counties));
     trail = regionTrail(representative, china);
@@ -263,7 +295,7 @@ function render() {
   });
   if (!trail.length) $('crumbs').textContent = '全国';
   $('map-desc').innerHTML = `<span>${china.counts.markets} 处${L.place}，${china.counts.seats} 个乡镇驻地。</span>
-    <span class="atlas__legend"><span><i class="lg-open"></i>当日${L.open}</span><span><i class="lg-shut"></i>当日${L.none}</span><span><i class="lg-me"></i>所在</span></span>`;
+    <span class="atlas__legend"><span><i class="lg-open"></i>当日${L.open}</span><span><i class="lg-shut"></i>当日${L.none}</span><span><i class="lg-unknown"></i>场期待核验</span><span><i class="lg-me"></i>所在</span></span>`;
 }
 
 /** [provinceName, openToday, total] sorted by openToday */
@@ -273,7 +305,7 @@ function byProv(flags) {
     const p = seats[i].p;
     const e = counts.get(p) || [provs[p].n, 0, 0];
     e[2]++;
-    if (flags[i]) e[1]++;
+    if (flags[i]===1) e[1]++;
     counts.set(p, e);
   }
   return [...counts.values()].filter(e => e[2]).sort((a, b) => b[1] - a[1]);
@@ -285,7 +317,7 @@ function nearbyUnplaced() {
     .slice(0, 10).map(([p, r]) => ({ prov: provs[p].n, rule: rules[r] }));
 }
 
-function setDay(i) { S.i = Math.max(0, Math.min(china.days.length - 1, i)); render(); }
+function setDay(i) { S.i = Math.max(0, Math.min(china.days.length - 1, i)); render(); updateHash(); }
 
 // ---- controls ----
 function stop() { if (S.playing) { clearInterval(S.playing); S.playing = 0; syncPlay(); } }
@@ -309,6 +341,7 @@ $('loom-close').onclick = () => { stop(); S.loom = false; render(); };
 $('zoom-all').onclick = clearHere;
 $('zoom-in').onclick = () => map.zoomBy(1.8);
 $('zoom-out').onclick = () => map.zoomBy(1 / 1.8);
+$('back-near').onclick = () => S.region ? fitRegion(S.region) : S.here && map.setHere(S.here,S.radius);
 
 function openLoom() {
   S.loom = true; S.win = monday(S.i); render();
@@ -326,34 +359,50 @@ function renderRadius() {
 
 // ---- finder ----
 const index = [];
-for (const [a, n, cp, p, x, y] of counties) index.push({ k: n, ll: [x / 1000, y / 1000], sub: cityName.get(cp) ?? '', a });
-for (const [a, n, p, x, y] of cities) index.push({ k: n, ll: [x / 1000, y / 1000], sub: provs[p].n, a });
-$('places').innerHTML = [...new Map(index.map(e => [`${e.k}（${e.sub}）`, e])).keys()].slice(0, 5000)
-  .map(k => `<option value="${k}">`).join('');
-
-$('finder').onsubmit = e => {
+for (const [a,n,cp,p,x,y] of counties) index.push({k:n,ll:[x/1000,y/1000],sub:`${provs[p].n} · ${cityName.get(cp)??''}`,region:{level:'county',id:a,name:n,p}});
+for (const [a,n,p,x,y] of cities) index.push({k:n,ll:[x/1000,y/1000],sub:provs[p].n,region:{level:'city',id:a,name:n,p}});
+provs.forEach((p,k)=>index.push({k:p.n,ll:centreOf(k),sub:'省级地区',region:{level:'province',id:k,name:p.n,p:k}}));
+let searchPromise;
+function ensureSearch() {
+  return searchPromise ||= dataFile('search.json').then(entries=>{
+    index.push(...entries.map(([k,si,sub])=>({k,sub,si,ll:[seats[si].lon,seats[si].lat]})));
+  }).catch(error=>{searchPromise=null;throw error;});
+}
+let searchRun=0;
+function choosePlace(hit) {
+  $('search-results').hidden=true; $('q').blur();
+  if (hit.si != null) selectSeat(seats[hit.si]);
+  else { S.here=hit.ll; selectRegion(hit.region); }
+  $('hint').textContent=`已前往 ${hit.k}`;
+}
+$('q').addEventListener('input',()=>{searchRun++;$('search-results').hidden=true;});
+$('finder').onsubmit = async e => {
   e.preventDefault();
-  const q = $('q').value.trim();
-  // Labels supplied by the map retain the exact picked point when submitted.
-  if (q && q === S.query?.text) {
+  const q=$('q').value.trim(), run=++searchRun;
+  if (!q) { $('hint').textContent='请输入省、市、县、乡镇或集市名称'; return; }
+  if (q===S.query?.text) {
     $('q').blur();
-    if (S.query.region) return selectRegion(S.query.region);
-    return setHere(S.query.ll, 'pick');
+    return S.query.region?selectRegion(S.query.region):setHere(S.query.ll,'pick');
   }
-  const nums = q.match(/-?\d+(?:\.\d+)?/g)?.map(Number);
-  if (nums && nums.length === 2 && !/[一-鿿]/.test(q)) {
-    const [a, b] = nums, ll = a > b ? [a, b] : [b, a];   // in China the latitude is the smaller number
-    if (ll[0] < 72 || ll[0] > 137 || ll[1] < 15 || ll[1] > 55) { $('hint').textContent = '这个坐标不在中国范围内'; return; }
-    $('hint').textContent = `已前往 ${ll[0].toFixed(4)}, ${ll[1].toFixed(4)}`;
-    return setHere(ll, 'pick');
+  const nums=q.match(/-?\d+(?:\.\d+)?/g)?.map(Number);
+  if (nums?.length===2 && !/[一-鿿]/.test(q)) {
+    const ll=nums[0]>nums[1]?nums:[nums[1],nums[0]];
+    if (ll[0]<72||ll[0]>137||ll[1]<15||ll[1]>55) { $('hint').textContent='这个坐标不在中国范围内';return; }
+    return setHere(ll,'map');
   }
-  const name = q.replace(/（.*）$/, ''), sub = q.match(/（(.*)）$/)?.[1];
-  const hit = index.find(e => e.k === name && (!sub || e.sub === sub)) || index.find(e => e.k === name)
-    || index.find(e => e.k.startsWith(name)) || index.find(e => e.k.includes(name));
-  if (!hit) { $('hint').textContent = `没找到「${name}」，试试县名或经纬度`; return; }
-  $('hint').textContent = `已前往 ${hit.k}（${hit.sub}）`;
-  $('q').blur();
-  setHere(hit.ll, 'pick');
+  $('hint').textContent='正在查找…';
+  try { await ensureSearch(); }
+  catch { $('hint').textContent='地名资料加载失败，请稍后再点找集重试';return; }
+  if (run!==searchRun) return;
+  const hits=findPlaces(index,q);
+  if (!hits.length) { $('hint').textContent=`没找到「${q}」，试试所属县市或其他名称`;return; }
+  if (hits.length===1) return choosePlace(hits[0]);
+  const results=$('search-results'); results.replaceChildren(); results.hidden=false;
+  $('hint').textContent='请选择您要找的地方';
+  for (const hit of hits) {
+    const b=document.createElement('button');b.type='button';b.textContent=`${hit.k} · ${hit.sub}`;
+    b.onclick=()=>choosePlace(hit);results.append(b);
+  }
 };
 
 $('locate').onclick = () => {
@@ -366,23 +415,61 @@ $('locate').onclick = () => {
   }, () => { $('hint').textContent = '没能拿到位置，请直接点地图'; }, { enableHighAccuracy: false, timeout: 8000 });
 };
 
-// ---- boot ----
-S.win = monday(S.i);
-const h = location.hash.slice(1).split(',').map(Number);
-if (h.length === 3 && RADII.includes(h[2])) S.radius = h[2];
-render();
-loadAllProvinces();
-const regionHash = location.hash.slice(1).split(',');
-if (regionHash[0] === 'region' && regionHash.length >= 6) {
-  const ll = regionHash.slice(3, 5).map(Number);
-  if (ll.every(Number.isFinite) && ll[0] >= 72 && ll[0] <= 137 && ll[1] >= 15 && ll[1] <= 55) S.here = ll;
-  if (RADII.includes(+regionHash[5])) S.radius = +regionHash[5];
+// ---- shared links, local bookmarks and boot ----
+function updateHash() {
+  if (!S.here) return;
+  const ll=S.here.map(n=>n.toFixed(4)).join(',');
+  const base=S.region?`region,${S.region.level},${S.region.id},${ll},${S.radius}`:`${ll},${S.radius}`;
+  const params=new URLSearchParams({date:china.days[S.i].d});
+  if (S.seat) params.set('seat',seatKey(S.seat,counties));
+  history.replaceState(null,'',`#${base}?${params}`);
 }
-const regionSeat = regionHash[0] === 'region' && seats.find(s => regionTrail(s, china).some(r => r.level === regionHash[1] && r.id === +regionHash[2]));
-if (regionSeat) selectRegion(regionTrail(regionSeat, china).find(r => r.level === regionHash[1]));
-else if (h.length >= 2 && h.slice(0, 2).every(Number.isFinite)) setHere(h.slice(0, 2), 'map');
-
-else {
-  const binyang = counties.find(c => c[1] === '宾阳县');
-  if (binyang) setHere([binyang[4] / 1000, binyang[5] / 1000], 'featured');
+function restoreLink() {
+  if (location.hash && document.getElementById(location.hash.slice(1))) return;
+  const h=parseHash(location.hash);
+  S.radius=h.radius;S.i=indexOf(china.days,h.date||todayISO());S.win=monday(S.i);
+  if (h.ll) {
+    const region=h.region && index.find(e=>e.region?.level===h.region.level && e.region.id===h.region.id)?.region;
+    if (region) {S.here=h.ll;selectRegion(region);}
+    else if (h.seat) {
+      const seat=seats.find(s=>seatKey(s,counties)===h.seat);
+      seat?selectSeat(seat):setHere(h.ll,'map');
+    } else setHere(h.ll,'map');
+  } else {
+    const c=counties.find(c=>c[1]==='宾阳县');
+    if(c)setHere([c[4]/1000,c[5]/1000],'featured');else render();
+  }
 }
+$('share-place').onclick=async()=>{
+  updateHash();
+  try {
+    if (navigator.share) await navigator.share({title:'赶集志',url:location.href});
+    else {await navigator.clipboard.writeText(location.href);$('hint').textContent='已复制链接，包含所选日期和地点';}
+  } catch(e) {if(e.name!=='AbortError')$('hint').textContent='可以复制浏览器地址分享此处';}
+};
+const readSaved=()=>{try{const saved=JSON.parse(localStorage.getItem('ganji-saved')||'[]');return Array.isArray(saved)?saved.filter(x=>typeof x?.name==='string'&&typeof x?.hash==='string'):[];}catch{return [];}};
+$('save-place').onclick=()=>{
+  if(!S.here){$('hint').textContent='先选一个地方再收藏';return;}
+  updateHash();
+  const entry={name:S.seat?seatInfoOf(S.seat).displayName:S.region?.name||nameNear(S.here).label,hash:location.hash};
+  try {localStorage.setItem('ganji-saved',JSON.stringify([entry,...readSaved().filter(x=>x.hash!==entry.hash)].slice(0,50)));$('hint').textContent='已收藏在这台设备中';}
+  catch {$('hint').textContent='浏览器未允许保存，可复制链接收藏';}
+};
+$('saved-places').onclick=()=>{
+  const root=$('saved-list');root.hidden=!root.hidden;root.replaceChildren();
+  const saved=readSaved();
+  if(!saved.length)root.textContent='还没有收藏。选一个地方后，点「收藏此处」。';
+  for(const x of saved){const row=document.createElement('div'),b=document.createElement('button'),del=document.createElement('button');b.type=del.type='button';b.textContent=x.name;b.onclick=()=>{history.replaceState(null,'',x.hash);restoreLink();root.hidden=true;};del.textContent='移除';del.setAttribute('aria-label',`移除收藏 ${x.name}`);del.onclick=()=>{try{localStorage.setItem('ganji-saved',JSON.stringify(readSaved().filter(y=>y.hash!==x.hash)));row.remove();}catch{}};row.append(b,del);root.append(row);}
+};
+window.addEventListener('hashchange',restoreLink);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.seat){selectSeat(null);$('q').focus({preventScroll:true});}});
+function checkDate() {
+  const iso=todayISO(),next=todayIndex();
+  $('today').disabled=next<0;
+  if (iso<china.days[0].d||iso>china.days.at(-1).d) {
+    $('load-status').hidden=false;$('load-status').textContent=`当前集历仅覆盖至 ${china.days.at(-1).d}，以下显示覆盖期内资料。`;
+  }
+  if(next!==today){const wasToday=S.i===today;today=next;if(wasToday)S.i=indexOf(china.days,iso);render();updateHash();}
+}
+restoreLink();checkDate();setInterval(checkDate,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDate();});

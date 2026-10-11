@@ -3,7 +3,7 @@ name: Publish Ganji Atlas
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'tests/**', '.github/workflows/pages.yml']
+    paths: ['site/**', 'scripts/**', 'tests/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test tests/map-view.test.mjs tests/region.test.mjs tests/place-name.test.mjs
+      - run: node --test tests/*.test.mjs
       - run: node --check site/js/app.js && node --check site/js/map.js && node --check site/js/panel.js && node --check site/js/weave.js
   deploy:
     needs: check
@@ -34,10 +34,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/build-site.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: dist
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4

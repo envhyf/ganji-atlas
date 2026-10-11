@@ -119,6 +119,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "p").mkdir(exist_ok=True)
     (OUT / "m").mkdir(exist_ok=True)
+    search_entries = set()
     for pk, items in by_prov.items():
         f = provs[pk]
         code = f["properties"]["adcode"]
@@ -144,8 +145,14 @@ def main():
                        m["confidence"], m["seat"] or "", m.get("how") or "",
                        rs.split("赶的是", 1)[-1] if "赶的是" in rs else ""])
         atomic_json(OUT / 'm' / f'{code}.json', {"a": code, "markets": mk})
+        for row in mk:
+            sub = ' · '.join(x for x in [f['properties']['name'], row[5], row[4]] if x)
+            for name in [row[1], row[6]]:
+                if name and row[2] is not None:
+                    search_entries.add((name, row[2], sub))
         print(f"  {f['properties']['name']}: p {len(cs)}c/{len(ks)}k, "
               f"m {(OUT / 'm' / f'{code}.json').stat().st_size // 1024} KB {len(mk)} markets")
+    atomic_json(OUT / 'search.json', sorted(search_entries))
     atomic_json(OUT / 'china.json', china)
     print(f"china.json {(OUT / 'china.json').stat().st_size // 1024} KB: {markets_total} markets, "
           f"{len(seats)} seats, {len(counties)} counties", flush=True)

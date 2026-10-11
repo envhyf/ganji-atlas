@@ -282,3 +282,40 @@ button:disabled { opacity: .4; cursor: default; }
   .mast__crumbs:empty { display: none; }
   .mast__crumbs span[aria-hidden] { display: inline-flex; }
 }
+
+/* Reading and interaction refinements. */
+.load-status { padding-block: 12px; color: #64563e; font-size: 14px; }
+.load-status[hidden], .recovery[hidden], .search-results[hidden] { display: none; }
+.recovery button, .place-actions button { border: 0; border-radius: 8px; padding: 9px 10px; background: #eef3eb; cursor: pointer; }
+.place-actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 12px; font-size: 12px; }
+.place-actions button { background: transparent; color: #477a61; min-height: 40px; }
+.place-actions button:hover { background: #eef3eb; }
+.search-results { max-height: 280px; overflow-y: auto; padding: 8px; border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 12px; background: #fff; }
+.search-results button { display: block; width: 100%; padding: 12px 8px; text-align: left; border: 0; background: transparent; cursor: pointer; font-size: 14px; }
+.search-results button:hover { background: #eef3eb; }
+#saved-list > div { display: flex; align-items: center; }
+#saved-list > div button:last-child { width: auto; flex: none; color: #8a6753; }
+.map-scale { position: absolute; z-index: 3; bottom: 10px; left: 12px; width: 80px; border: solid #627e6d; border-width: 0 1px 2px; text-align: center; font: 11px/1.6 var(--sans); color: #385846; background: #f2f7f3cc; pointer-events: none; }
+.atlas__legend .lg-unknown { border: 1px dashed #9b8067; }
+.card__location { font-size: 12px; color: #716c60; line-height: 1.7; margin-top: 8px; }
+.near-cal__week button { width: 44px; height: 44px; background: radial-gradient(circle, #f1f5ee 14px, transparent 14px); }
+.zoomctl button { width: 44px; height: 44px; }
+.near-cal__markets small, .near-cal__markets em, .near-cal__dates small,
+.near-cal__dates button > span, .near-cal__week, .near-cal__heading > span,
+.card__meta, .card__name span, .near-cal__more summary, .card__source summary,
+.atlas__hint, .atlas__cap, .colophon { font-size: 12px; }
+.near-cal__markets small { white-space: normal; }
+@media (max-width:720px) {
+  .welcome__lede { font-size: 12px; line-height: 1.8; }
+  .finder input, .finder button { font-size: 14px; }
+  .radius button { min-height: 42px; }
+  .atlas__stage { scroll-margin-top: 110px; }
+  .ledger .card { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; margin: 0; max-height: 44vh; max-height: 44dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 22px 22px 0 0; padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px #294d4518; }
+  .card__h { position: sticky; top: -16px; background: #fffaf5; padding-block: 8px; z-index: 1; }
+  .card__x { width: 44px; height: 44px; flex: none; }
+  .card__path, .card__location { font-size: 12px; }
+  .near-cal__dates { gap: 4px; }
+  .near-cal__dates button { flex-basis: 36px; }
+  .place-actions { gap: 0; justify-content: space-between; }
+  .place-actions button { padding-inline: 4px; }
+}

@@ -73,6 +73,7 @@ export function nextDays(rule, days, i, n = 5) {
 export function md(iso) { return `${+iso.slice(5, 7)}月${+iso.slice(8)}日`; }
 
 export function todayISO() {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const value=type=>parts.find(p=>p.type===type).value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
 }

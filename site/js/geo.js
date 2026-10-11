@@ -71,3 +71,17 @@ export function centroid(geom) {
   for (const [a, b] of rs) { x += a; y += b; }
   return [x / rs.length, y / rs.length];
 }
+
+/** Point-in-polygon with holes; administrative labels must not use nearest market. */
+export function contains(geom, [x, y]) {
+  const ringHas = ring => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [ax, ay] = ring[i], [bx, by] = ring[j];
+      if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) inside = !inside;
+    }
+    return inside;
+  };
+  const polygons = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+  return polygons.some(rings => ringHas(rings[0]) && !rings.slice(1).some(ringHas));
+}
