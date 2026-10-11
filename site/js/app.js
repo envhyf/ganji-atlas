@@ -2,7 +2,7 @@
 // demand per province; seats and their rules live in the national bundle.
 import { isMarket, indexOf, todayISO, weekday } from './calendar.js';
 import { km, wgs2gcj, bounds } from './geo.js';
-import { createMap } from './map.js?v=20261011-radius-label-cleanup';
+import { createMap } from './map.js?v=20261011-dense-labels-v2';
 import { renderAlmanac, renderLedger } from './panel.js?v=20261011-calendar-arrows';
 import { renderWeave, SPAN } from './weave.js?v=20261011-short-names';
 import { lexicon } from './lexicon.js';
@@ -11,7 +11,7 @@ import { regionTrail, inRegion } from './region.js';
 
 const RADII = [10, 20, 30, 50];
 const $ = id => document.getElementById(id);
-const china = await (await fetch('data/china.json')).json();
+const china = await (await fetch('data/china.json', { cache: 'no-cache' })).json();
 
 const counties = china.counties, cities = china.cities, provs = china.provinces, rules = china.rules;
 const seats = china.seats.map(([x, y, p, c, t, rs], i) => ({
@@ -33,8 +33,8 @@ async function loadProvince(k) {
   loading.add(code);
   try {
     const [geoP, mP] = await Promise.all([
-      fetch(`data/p/${code}.json`).then(r => r.json()),
-      fetch(`data/m/${code}.json`).then(r => r.json()),
+      fetch(`data/p/${code}.json`, { cache: 'no-cache' }).then(r => r.json()),
+      fetch(`data/m/${code}.json`, { cache: 'no-cache' }).then(r => r.json()),
     ]);
     packed.set(code, { geo: geoP, markets: mP.markets });
     for (const m of mP.markets) {
