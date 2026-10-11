@@ -199,7 +199,8 @@ button:disabled { opacity: .4; cursor: default; }
   .almanac__count { order: initial; margin: 0; padding: 0; text-align: right; max-width: 130px; font-size: 10px; line-height: 1.5; pointer-events: auto; }
   .almanac__count strong { font-size: 26px; display: block; line-height: 1.2; margin: 0; }
   .almanac__count small { display: none; }
-  .almanac__nav { position: fixed; grid-column: auto; grid-row: auto; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: rgba(248,250,247,.96); backdrop-filter: blur(18px); border-top: 1px solid var(--rule); gap: 8px; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .almanac__nav { position: static; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-column: 1 / -1; grid-row: 3; margin-top: 12px; padding: 10px 0 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border-top: 1px solid var(--rule); gap: 6px; }
   .almanac__nav .chipbtn { height: 43px; border: 0; border-radius: 12px; font-size: 13px; background: #edf2e9; }
   .almanac__nav .chipbtn[aria-current="date"] { background: #477a61; color: white; }
   .stage .atlas { order: initial; width: 100%; margin: 0; padding: 12px; border-radius: 18px; }
