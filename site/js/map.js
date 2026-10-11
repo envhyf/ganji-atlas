@@ -24,7 +24,6 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
   const frame = el('g', { class: 'm-frame-g' }, svg);
   const here = el('g', { class: 'm-here', visibility: 'hidden' }, svg);
   const ring = el('ellipse', { class: 'm-ring' }, here);
-  const ringLbl = el('text', { class: 'm-ring-lbl' }, here);
   const me = el('path', { class: 'm-me' }, here);
   const inset = el('g', { class: 'm-inset' }, svg);
 
@@ -259,8 +258,6 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
       shape.setAttribute('cx', x); shape.setAttribute('cy', y);
       shape.setAttribute('rx', rx); shape.setAttribute('ry', r);
     }
-    ringLbl.setAttribute('x', x + r * .71 + 3 / z); ringLbl.setAttribute('y', y - r * .71);
-    ringLbl.setAttribute('font-size', 10 / z); ringLbl.textContent = `${hereKm} 公里`;
     me.setAttribute('d', `M${x} ${y - s}L${x + s} ${y}L${x} ${y + s}L${x - s} ${y}Z`);
   }
 
