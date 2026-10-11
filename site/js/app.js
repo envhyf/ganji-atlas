@@ -2,7 +2,7 @@
 // demand per province; seats and their rules live in the national bundle.
 import { isMarket, indexOf, todayISO, weekday } from './calendar.js';
 import { km, wgs2gcj, bounds } from './geo.js';
-import { createMap } from './map.js?v=20261011-dense-labels-v2';
+import { createMap } from './map.js?v=20261011-selected-label-v3';
 import { renderAlmanac, renderLedger } from './panel.js?v=20261011-calendar-arrows';
 import { renderWeave, SPAN } from './weave.js?v=20261011-short-names';
 import { lexicon } from './lexicon.js';
@@ -193,8 +193,9 @@ function render() {
   map.setOpen(openFlags);
   map.setSelected(S.seat);
   map.setLabels(s => {
-    const active = (marketOf.get(s.i) || []).filter(m => isMarket(rules[m[3]], day));
-    return compactPlaceName(active.map(m => m[1]), seats[s.i]?.t);
+    const markets = marketOf.get(s.i) || [];
+    const names = S.seat?.i === s.i ? markets : markets.filter(m => isMarket(rules[m[3]], day));
+    return compactPlaceName(names.map(m => m[1]), seats[s.i]?.t);
   });
 
   const near = S.here ? (() => {

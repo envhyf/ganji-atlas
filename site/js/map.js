@@ -192,7 +192,11 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
       }
     }
     ctx.globalAlpha = 1;
-    const placed = [];
+    // Reserve the selected place first so administrative names cannot hide it.
+    const placed = labels.filter(({ s }) => s.sel).map(({ s, x, y }) => {
+      const tx = x + rOpen + 4;
+      return [tx, y - 9, tx + ctx.measureText(s.label || '').width, y + 9];
+    });
     // Reserve a small amount of space for administrative names before town labels.
     const level = z < 3.4 ? 'province' : z < 12 ? 'cities' : 'counties';
     const names = level === 'province' ? provinceLabels : [...detailLayers.values()].flatMap(layer => layer[level]);
@@ -223,7 +227,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
         const t = s.label || '';
         if (!t) continue;
         const tx = x + rOpen + 4, tw = ctx.measureText(t).width;
-        if (placed.some(b => tx < b[2] && tx + tw > b[0] && y - 7 < b[3] && y + 7 > b[1])) continue;
+        if (!s.sel && placed.some(b => tx < b[2] && tx + tw > b[0] && y - 7 < b[3] && y + 7 > b[1])) continue;
         placed.push([tx, y - 7, tx + tw, y + 7]);
         ctx.strokeText(t, tx, y); ctx.fillText(t, tx, y);
         if (++townCount >= townLimit) break;
