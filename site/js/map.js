@@ -188,6 +188,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
         ctx.globalAlpha = z > 3 ? .85 : .5;
         ctx.arc(x, y, rShut, 0, 6.2832); ctx.stroke();
         ctx.globalAlpha = 1;
+        if (showLabel && s.sel) labels.push({ s, x, y, emphasized: false });
       }
     }
     ctx.globalAlpha = 1;
@@ -209,10 +210,15 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
       placed.push([x-half-14, y-17, x+half+14, y+17]);
       if (++count >= (cw < 500 ? 6 : 10)) break;
     }
-    if (labels.length <= 90) {
+    if (showLabel) {
       ctx.fillStyle = INK; ctx.strokeStyle = PAPER; ctx.lineWidth = 4;
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      for (const { s, x, y, emphasized } of labels.sort((a, b) => Number(b.emphasized) - Number(a.emphasized))) {
+      let townCount = 0;
+      const townLimit = labels.length > 90 ? (cw < 500 ? 24 : 48) : Infinity;
+      labels.sort((a, b) => Number(!!b.s.sel) - Number(!!a.s.sel)
+        || Number(b.emphasized) - Number(a.emphasized)
+        || Math.hypot(a.x-cw/2, a.y-ch/2) - Math.hypot(b.x-cw/2, b.y-ch/2));
+      for (const { s, x, y, emphasized } of labels) {
         ctx.font = `${emphasized ? '600 ' : ''}${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
         const t = s.label || '';
         if (!t) continue;
@@ -220,6 +226,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat }) {
         if (placed.some(b => tx < b[2] && tx + tw > b[0] && y - 7 < b[3] && y + 7 > b[1])) continue;
         placed.push([tx, y - 7, tx + tw, y + 7]);
         ctx.strokeText(t, tx, y); ctx.fillText(t, tx, y);
+        if (++townCount >= townLimit) break;
       }
     }
     canvas.classList.toggle('is-labelled', showLabel);
