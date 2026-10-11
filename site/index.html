@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/map.css">
   <link rel="stylesheet" href="css/weave.css">
-  <link rel="stylesheet" href="css/light.css?v=20261011-welcome-final">
-  <script type="module" src="js/app.js?v=20261011-calendar-arrows"></script>
+  <link rel="stylesheet" href="css/light.css?v=20261011-search-hint">
+  <script type="module" src="js/app.js?v=20261011-search-hint"></script>
 </head>
 <body>
   <a class="skip" href="#ledger">跳到当日集市</a>
@@ -57,7 +57,7 @@
         <form class="finder" id="finder" role="search" autocomplete="off">
           <label class="sr-only" for="q">地名或经纬度</label>
           <input id="q" name="q" type="search" enterkeyhint="search"
-                 placeholder="想去哪里？搜县名或经纬度" list="places">
+                 placeholder="输入您所在的区域" list="places">
           <datalist id="places"></datalist>
           <button type="submit">找集 <span aria-hidden="true">↗</span></button>
         </form>
@@ -65,7 +65,7 @@
           <div class="radius" role="radiogroup" aria-label="周边范围" id="radius"></div>
           <button type="button" class="chipbtn" id="zoom-all">全国</button>
         </div>
-        <p class="atlas__hint" id="hint">点一个小圆点，看看这里哪天有集</p>
+        <p class="atlas__hint" id="hint">点一个小圆点，看看这附近哪天有集。</p>
         <div class="atlas__stage" id="stage">
           <canvas id="dots" aria-hidden="true"></canvas>
           <svg id="map" role="img" aria-labelledby="map-desc"></svg>

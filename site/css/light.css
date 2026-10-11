@@ -62,7 +62,7 @@ button:disabled { opacity: .4; cursor: default; }
 .atlas { padding: 18px; background: white; border: 1px solid var(--rule); border-radius: 22px; min-width: 0; }
 .finder { margin-bottom: 14px; border: 1px solid #e8eee6; border-radius: 13px; background: #f5f7f2; overflow: hidden; }
 .finder input { height: 50px; padding-inline: 16px; font-size: 14px; }
-.finder input::placeholder { color: #66786f; }
+.finder input::placeholder { color: #849087; opacity: 1; }
 .finder button { margin: 5px; border-radius: 9px; padding: 0 19px; background: #477a61; font-size: 14px; font-weight: 600; letter-spacing: 0; white-space: nowrap; }
 .finder button:hover { background: #355f49; }
 .finder button span { margin-left: 8px; }

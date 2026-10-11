@@ -89,7 +89,7 @@ map.setSeats(china.seats);
 
 function setHere(ll, via) {
   S.region = null; S.seat = null; S.here = ll; S.via = via;
-  if (via !== 'pick') {
+  if (via !== 'pick' && via !== 'featured') {
     const place = nameNear(ll);
     const text = place.distance <= 50 ? `${place.label}${place.city ? `（${place.city}）` : ''}`
       : `${ll[0].toFixed(4)}, ${ll[1].toFixed(4)}`;
