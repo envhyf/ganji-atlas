@@ -1,8 +1,8 @@
 // Almanac (left) and ledger (right). Pure render from a view model; events via callbacks.
 // A "seat" is one township seat; it may hold several markets sharing a rhythm or not.
-import { isMarket, ruleLabel, weekdayCn, weekday, nextDays, md } from './calendar.js?v=20261012-refine';
+import { isMarket, ruleLabel, weekdayCn, weekday, nextDays, md } from './calendar.js?v=20261012-summary';
 
-import { compactPlaceName } from './place-name.js?v=20261012-refine';
+import { compactPlaceName } from './place-name.js?v=20261012-summary';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kmTxt = d => d < 1 ? '直线 <1 公里' : `直线 ${d < 10 ? d.toFixed(1) : Math.round(d)} 公里`;

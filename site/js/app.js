@@ -1,14 +1,14 @@
 // State and wiring for the national atlas. Boundaries and market names load on
 // demand per province; seats and their rules live in the national bundle.
-import { isMarket, indexOf, todayISO, weekday } from './calendar.js?v=20261012-refine';
-import { km, wgs2gcj, bounds, contains } from './geo.js?v=20261012-refine';
-import { createMap } from './map.js?v=20261012-refine';
-import { renderAlmanac, renderLedger } from './panel.js?v=20261012-refine';
-import { renderWeave, SPAN } from './weave.js?v=20261012-refine';
-import { lexicon } from './lexicon.js?v=20261012-refine';
-import { compactPlaceName } from './place-name.js?v=20261012-refine';
-import { regionTrail, inRegion } from './region.js?v=20261012-refine';
-import { findPlaces, seatKey, parseHash } from './query.js?v=20261012-refine';
+import { isMarket, indexOf, todayISO, weekday } from './calendar.js?v=20261012-summary';
+import { km, wgs2gcj, bounds, contains } from './geo.js?v=20261012-summary';
+import { createMap } from './map.js?v=20261012-summary';
+import { renderAlmanac, renderLedger } from './panel.js?v=20261012-summary';
+import { renderWeave, SPAN } from './weave.js?v=20261012-summary';
+import { lexicon } from './lexicon.js?v=20261012-summary';
+import { compactPlaceName } from './place-name.js?v=20261012-summary';
+import { regionTrail, inRegion } from './region.js?v=20261012-summary';
+import { findPlaces, seatKey, parseHash } from './query.js?v=20261012-summary';
 
 const RADII = [10, 20, 30, 50];
 const $ = id => document.getElementById(id);
@@ -100,14 +100,20 @@ const openFlags = new Uint8Array(seats.length);
 
 const map = createMap($('stage'), $('map'), $('dots'), {
   onView: loadVisible,
+  onRegion: async group => {
+    await selectRegion({level:group.level,id:group.id,name:group.name,p:group.p});
+    if(group.level==='city' && S.region?.id===group.id)map.zoomToLocal(group.point);
+  },
   onPick: ll => setHere(ll, 'map'),
   onSeat: s => selectSeat(seats[s.i]),
 });
 map.setNation(provs, china.jd);
 map.setSeats(china.seats);
+map.setSummaryData(china.seats,counties,cities,provs);
 
 function setHere(ll, via) {
   S.region = null; S.seat = null; S.here = ll; S.via = via;
+  map.setSummaryScope(null);
   $('hint').textContent = via==='gps'?'已按你的位置显示':'点一个小圆点，看看这附近哪天有集。';
   if (via !== 'pick' && via !== 'featured') {
     const place = nameNear(ll);
@@ -140,6 +146,7 @@ function selectSeat(seat) {
 async function selectRegion(region) {
   stop();
   S.region = region; S.seat = null;
+  map.setSummaryScope(region.p);
   S.here = S.here || centreOf(region.p); S.via = 'region';
   syncFinder(region.name, S.here, region);
   map.clearHere();
@@ -167,6 +174,7 @@ function fitRegion(region) {
   map.fitBounds(box);
 }
 function clearHere() {
+  map.setSummaryScope(null);
   S.region = null; S.here = null; S.via = null; S.seat = null; S.loom = false;
   $('q').value = ''; S.query = null;
   history.replaceState(null, '', location.pathname);

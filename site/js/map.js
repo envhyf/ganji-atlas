@@ -1,7 +1,9 @@
 // The atlas: SVG for boundaries, frame and 南海诸岛 inset; canvas for the dots.
 // A canvas keeps 25k seats smooth, and hit-testing is then ours to do.
-import { bounds, fitProjection, pathOf, linePathOf, km, centroid } from './geo.js?v=20261012-refine';
-import { worldToScreen, screenToWorld, limitView, MAX_ZOOM } from './view.js?v=20261012-refine';
+import { bounds, fitProjection, pathOf, linePathOf, km, centroid } from './geo.js?v=20261012-summary';
+import { worldToScreen, screenToWorld, limitView, MAX_ZOOM } from './view.js?v=20261012-summary';
+
+import { summaryLevel, groupSeats, spaceBadges } from './clusters.js?v=20261012-summary';
 
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1000, PAD = 34;
@@ -14,9 +16,52 @@ function el(tag, attrs = {}, parent) {
   return n;
 }
 
-export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
+export function createMap(stage, svg, canvas, { onPick, onSeat, onView, onRegion }) {
   let proj = null, H = W * 0.8, vb = null, seats = [], openFlags = null;
   const ctx = canvas.getContext('2d');
+  let summaryScope=null;
+  let summaryData=null, summaryGroups={province:[],city:[]};
+  const bubbles=document.createElement('div'); bubbles.className='map-bubbles';
+  bubbles.setAttribute('aria-label','按地区查看当日有集乡镇'); stage.append(bubbles);
+  const summaryNote=document.createElement('span');summaryNote.className='map-summary-note';stage.append(summaryNote);
+  const bubbleNodes=new Map();
+  const mode=()=>{
+    const level=summaryLevel(vb[2]*proj.kmPerPx);
+    if(level!=='city')return level;
+    const visible=summaryGroups.city.filter(g=>{
+      if(summaryScope!==null&&g.p!==summaryScope)return false;
+      const [x,y]=proj(g.point);return x>=vb[0]&&x<=vb[0]+vb[2]&&y>=vb[1]&&y<=vb[1]+vb[3];
+    }).length;
+    let capacity=0;
+    for(let y=44;y<=stage.clientHeight-42;y+=50)for(let x=30;x<=stage.clientWidth-30;x+=54){
+      if(!(x>stage.clientWidth-72&&y<115))capacity++;
+    }
+    return visible>capacity?'province':level;
+  };
+  function refreshGroups(){if(summaryData)for(const level of ['province','city'])summaryGroups[level]=groupSeats(...summaryData,openFlags,level);}
+  function paintSummaries(level,cw,ch){
+    const items=summaryGroups[level].filter(g=>level!=='city'||summaryScope===null||g.p===summaryScope).map(g=>({...g,anchor:worldToScreen(proj(g.point),vb,cw,ch)}))
+      .filter(g=>g.anchor[0]>=0&&g.anchor[0]<=cw&&g.anchor[1]>=0&&g.anchor[1]<=ch);
+    const active=new Set();
+    for(const g of spaceBadges(items,cw,ch,level==='city')){
+      const key=`${level}:${g.id}`;active.add(key);
+      let button=bubbleNodes.get(key);
+      if(!button){button=document.createElement('button');button.type='button';button.className='map-bubble';
+        const number=document.createElement('b'),label=document.createElement('span');button.append(number,label);
+        button.onclick=()=>{if(moved<=5)onRegion?.(g);};bubbles.append(button);bubbleNodes.set(key,button);}
+      button.disabled=animating;
+      button.style.left=`${g.x}px`;button.style.top=`${g.y}px`;
+      button.firstChild.textContent=g.count;button.lastChild.textContent=g.name.replace('壮族自治区','').replace('回族自治区','').replace('维吾尔自治区','').replace('自治区','');
+      button.dataset.size=g.count>=1000?'large':g.count>=100?'medium':'small';
+      button.setAttribute('aria-label',`${g.name}，当日 ${g.count} 个乡镇有集，点击放大`);
+      button.title=`${g.name}：已收录 ${g.total} 个乡镇，当日有集 ${g.count} 个`;
+      if(Math.hypot(g.x-g.anchor[0],g.y-g.anchor[1])>12){
+        ctx.beginPath();ctx.moveTo(...g.anchor);ctx.lineTo(g.x,g.y);ctx.strokeStyle='#91ac98';ctx.lineWidth=1;ctx.stroke();
+      }
+    }
+    for(const [key,node] of bubbleNodes)if(!active.has(key)){node.remove();bubbleNodes.delete(key);}
+  }
+
   const land = el('g', { class: 'm-land' }, svg);
   const detail = el('g', { class: 'm-detail' }, svg);
   const provinceEdges = el('g', { class: 'm-province-edges' }, svg);
@@ -99,7 +144,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
     const [x, y, w, h] = vb;
     const visible = [...detailLayers.values()].some(({ box: b }) =>
       b[0] <= x + w && b[2] >= x && b[1] <= y + h && b[3] >= y);
-    stage.classList.toggle('is-detailed', proj.zoom > 3.4 && visible);
+    stage.classList.toggle('is-detailed', mode()==='local' && visible);
   }
 
   function setSeats(list) {
@@ -113,7 +158,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
   }
 
   // ---- view ----
-  let raf = 0;
+  let raf = 0, animating = false;
   const zoomOf = v => W / v[2];
 
   function apply(v) {
@@ -136,10 +181,12 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
 
   function animateTo(target, ms = 520) {
     cancelAnimationFrame(raf);
+    animating=true;
     const from = vb.slice(), t0 = performance.now();
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const step = t => {
       const k = reduce ? 1 : Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3;
+      if(k===1)animating=false;
       apply(from.map((a, i) => a + (target[i] - a) * e));
       if (k < 1) raf = requestAnimationFrame(step);
     };
@@ -170,6 +217,11 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
+    const levelMode=mode();
+    stage.dataset.summary=levelMode;
+    bubbles.hidden=levelMode==='local';summaryNote.hidden=levelMode==='local';
+    summaryNote.textContent=levelMode==='province'?'按省汇总 · 数字为当日有集乡镇数':'按市汇总 · 数字为当日有集乡镇数';
+    if(levelMode!=='local'){paintSummaries(levelMode,cw,ch);return;}
     ctx.lineWidth = 1.2;
     const [vx, vy, vw, vh] = vb;
     const rOpen = z > 3.4 ? 5 : 2.2;
@@ -275,7 +327,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
   // ---- "here" ----
   let herePt = null, hereKm = 20;
   function placeHere() {
-    if (!herePt) { here.setAttribute('visibility', 'hidden'); return; }
+    if (!herePt || mode()!=='local') { here.setAttribute('visibility', 'hidden'); return; }
     here.setAttribute('visibility', 'visible');
     const [x, y] = proj(herePt), z = zoomOf(vb), r = hereKm / proj.kmPerPx, s = 6 / z;
     const rx = Math.abs(proj([herePt[0] + hereKm / (111.195 * Math.cos(herePt[1] * Math.PI / 180)), herePt[1]])[0] - x);
@@ -295,12 +347,13 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
   let moved = 0;
   const wrap = stage;
   wrap.addEventListener('wheel', e => {
-    e.preventDefault(); cancelAnimationFrame(raf);
+    e.preventDefault(); cancelAnimationFrame(raf); animating=false; summaryScope=null;
     const [px, py] = toSvg(e.clientX, e.clientY);
     zoomAt(px, py, Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0018)));
   }, { passive: false });
   wrap.addEventListener('pointerdown', e => {
-    cancelAnimationFrame(raf);
+    if(e.target.closest('button'))return;
+    cancelAnimationFrame(raf);animating=false;paint();
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) moved = 0;
   });
@@ -311,6 +364,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
       const dx = cur.x - prev.x, dy = cur.y - prev.y;
       moved += Math.abs(dx) + Math.abs(dy);
       if (moved > 5) {
+        summaryScope=null;
         if (!wrap.hasPointerCapture(e.pointerId)) wrap.setPointerCapture(e.pointerId);
         wrap.classList.add('is-dragging');
         const k = vb[2] / wrap.clientWidth;
@@ -345,6 +399,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
   wrap.addEventListener('click', e => {
     if (e.target.closest('button')) return;
     if (moved > 5) return;
+    if(mode()!=='local') return;
     const s = nearest(e.clientX, e.clientY);
     if (s) return onSeat(s);
     const [px, py] = toSvg(e.clientX, e.clientY);
@@ -355,12 +410,15 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
 
   return {
     setNation, setDetail, setSeats,
+    setSummaryScope(p){summaryScope=p;paint();},
+    setSummaryData(...data){summaryData=data;refreshGroups();paint();},
+    zoomToLocal(ll){animateTo(boxAround(ll,35));},
     fitBounds(b) {
       const [x0, y0] = proj([b[0], b[3]]), [x1, y1] = proj([b[2], b[1]]);
       const w = Math.max(x1 - x0, (y1 - y0) * W / H) * 1.15;
       animateTo(clampView([(x0 + x1 - w) / 2, (y0 + y1 - w * H / W) / 2, w, w * H / W]));
     },
-    setOpen(flags) { openFlags = flags; paint(); },
+    setOpen(flags) { openFlags = flags; refreshGroups(); paint(); },
     setLabels(fn) { for (const s of seats) s.label = fn(s); paint(); },
     setSelected(s) {
       for (const x of seats) x.sel = s?.i === x.i;
@@ -369,7 +427,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView }) {
     setHere(ll, radiusKm) { herePt = ll; if (radiusKm) hereKm = radiusKm; updateNearby(); placeHere(); if (ll) animateTo(boxAround(ll, hereKm * 1.4)); },
     clearHere() { herePt = null; updateNearby(); placeHere(); animateTo([0, 0, W, H]); },
     zoomAll() { animateTo([0, 0, W, H]); },
-    zoomBy(k) { animateTo(clampView([vb[0] + vb[2] * (1 - 1 / k) / 2, vb[1] + vb[3] * (1 - 1 / k) / 2, vb[2] / k, vb[3] / k]), 260); },
+    zoomBy(k) { summaryScope=null; animateTo(clampView([vb[0] + vb[2] * (1 - 1 / k) / 2, vb[1] + vb[3] * (1 - 1 / k) / 2, vb[2] / k, vb[3] / k]), 260); },
     fitsIn(ll) { const [x, y] = proj(ll); return x > -W && x < 2 * W && y > -H && y < 2 * H; },
     project: ll => proj(ll),
     get view() { return vb; },

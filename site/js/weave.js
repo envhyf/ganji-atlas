@@ -1,7 +1,7 @@
 // The loom: rows = nearby township seats grouped by rhythm, columns = days.
-import { isMarket, ruleLabel, groupKey, weekday } from './calendar.js?v=20261012-refine';
+import { isMarket, ruleLabel, groupKey, weekday } from './calendar.js?v=20261012-summary';
 
-import { compactPlaceName } from './place-name.js?v=20261012-refine';
+import { compactPlaceName } from './place-name.js?v=20261012-summary';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const WK = ['一', '二', '三', '四', '五', '六', '日'];
