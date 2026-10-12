@@ -101,6 +101,9 @@ const openFlags = new Uint8Array(seats.length);
 const map = createMap($('stage'), $('map'), $('dots'), {
   onView: loadVisible,
   onRegion: async group => {
+    if(group.level==='province' && S.region?.level==='province' && S.region.id===group.id){
+      map.zoomToCities(group.point);return;
+    }
     await selectRegion({level:group.level,id:group.id,name:group.name,p:group.p});
     if(group.level==='city' && S.region?.id===group.id)map.zoomToLocal(group.point);
   },

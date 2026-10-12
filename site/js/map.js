@@ -412,6 +412,7 @@ export function createMap(stage, svg, canvas, { onPick, onSeat, onView, onRegion
     setNation, setDetail, setSeats,
     setSummaryScope(p){summaryScope=p;paint();},
     setSummaryData(...data){summaryData=data;refreshGroups();paint();},
+    zoomToCities(ll){animateTo(boxAround(ll,180));},
     zoomToLocal(ll){animateTo(boxAround(ll,35));},
     fitBounds(b) {
       const [x0, y0] = proj([b[0], b[3]]), [x1, y1] = proj([b[2], b[1]]);
