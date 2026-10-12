@@ -177,6 +177,7 @@ function fitRegion(region) {
   map.fitBounds(box);
 }
 function clearHere() {
+  $('hint').textContent='点省市数字逐级放大，查看当地集市。';
   map.setSummaryScope(null);
   S.region = null; S.here = null; S.via = null; S.seat = null; S.loom = false;
   $('q').value = ''; S.query = null;
